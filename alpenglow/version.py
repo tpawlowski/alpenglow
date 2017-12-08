@@ -50,4 +50,4 @@ MAJOR = _version_major
 MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
-REQUIRES = ["numpy", "skimage", "boto3", "PIL"]
+REQUIRES = ["numpy", "scikit-image", "boto3", "Pillow"]

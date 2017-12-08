@@ -1,4 +1,0 @@
-numpy
-skimage
-boto3
-PIL

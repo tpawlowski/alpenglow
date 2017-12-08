@@ -1,2 +1,8 @@
 *.tif
 *.tiff
+.idea
+build
+dist
+cottoncandy
+alpenglow.egg-info/
+venv
