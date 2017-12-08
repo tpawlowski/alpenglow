@@ -6,3 +6,4 @@ dist
 cottoncandy
 alpenglow.egg-info/
 venv
+notebooks/.ipynb_checkpoints/
