@@ -67,6 +67,7 @@ def apply_shift(image1, image2, shift, margin):
     Stitched image
     
     """
+    print('apply shift {0} margin {1}'.format(shift, margin))
     cols1 = image1.shape[1]
     cols2 = image2.shape[1]
     rows1 = image1.shape[0]
@@ -182,7 +183,7 @@ def output_zstack(images_1, images_2, coef, shift, margin, chop_index, chan=0, c
             shift_zero = int(np.round(np.polyval(coef, z_level)))
             shift_one = int(np.round(np.mean(shift[:,1])))
             registered[z_level] = apply_shift(images_1[z_level], images_2[z_level], 
-                                              [shift_zero, shift_one])[:chop_index]
+                                              [shift_zero, shift_one], margin)[:chop_index]
 
         return registered
 
@@ -221,5 +222,5 @@ def stitch_zstack(images_1, images_2, nchan, chan, margin, current_stack=None, o
                 registered[chan_index] = output_zstack(
                     images_1[chan_index*images_1.shape[0]//nchan:(chan_index+1)*images_1.shape[0]//nchan,:],
                     images_2[chan_index*images_2.shape[0]//nchan:(chan_index+1)*images_2.shape[0]//nchan,:], 
-                    coef, shift, chop_index, current_stack=current_stack, out_path=out_path)
+                    coef, shift, margin, chop_index, current_stack=current_stack, out_path=out_path)
             return registered 

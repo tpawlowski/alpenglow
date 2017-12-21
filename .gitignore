@@ -2,6 +2,7 @@
 *.pyo
 *.tif
 *.tiff
+*.DS_Store
 .idea
 build
 dist
