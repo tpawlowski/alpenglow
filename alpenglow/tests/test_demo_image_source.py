@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from numpy.testing import assert_array_equal, assert_almost_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 from skimage.filters import gaussian
 from skimage.util import invert
 
@@ -13,7 +13,7 @@ class TestDemoImageSource(TestCase):
     """
     def test_sample_image(self):
         # given
-        source = DemoImageSource(2, 3)
+        source = DemoImageSource(stripe_count=2, version_count=3)
 
         # when
         image = source.get_image(0, 0)
@@ -35,7 +35,7 @@ class TestDemoImageSource(TestCase):
 
     def test_first_channel(self):
         # given
-        source = DemoImageSource(2, 3, channel_count=2)
+        source = DemoImageSource(stripe_count=2, version_count=3, channel_count=2)
 
         # when
         image = source.get_image(0, 0)
@@ -47,7 +47,7 @@ class TestDemoImageSource(TestCase):
 
     def test_second_channel_is_inverted(self):
         # given
-        source = DemoImageSource(2, 3, channel_count=2)
+        source = DemoImageSource(stripe_count=2, version_count=3, channel_count=2)
 
         # when
         image = source.get_image(0, 0)
@@ -59,7 +59,7 @@ class TestDemoImageSource(TestCase):
 
     def test_versions_are_blurred(self):
         # given
-        source = DemoImageSource(2, 3, channel_count=2)
+        source = DemoImageSource(stripe_count=2, version_count=3, channel_count=2)
 
         # when
         image = source.get_image(0, 2)
@@ -72,13 +72,14 @@ class TestDemoImageSource(TestCase):
 
     def test_middle_version_blur(self):
         # given
-        source = DemoImageSource(2, 3, channel_count=2)
+        source = DemoImageSource(stripe_count=2, version_count=3, channel_count=2)
 
         # when
-        image = source.get_image(0, 1)
+        image = source.get_image(0, 2)
 
         # then
         shape = image.shape
 
-        assert_array_equal(image[:int(shape[0] / 2), :shape[1]],
-                           (gaussian(source.source_image[:int(shape[0] / 2), :shape[1]], 2.0) * 255).astype(image.dtype))
+        assert_array_almost_equal(image[:int(shape[0] // 2), :shape[1]],
+                                  (gaussian(source.source_image[:int(shape[0] // 2), :shape[1]], 2.0) * 255).astype(image.dtype),
+                                  decimal=0)

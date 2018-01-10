@@ -1,12 +1,26 @@
 from abc import ABCMeta, abstractmethod
 from numpy import ndarray
 
+from alpenglow.lazy_stripe import LazyStripe
+
 
 class ImageSource:
     """
     Interface for image source enabling to fetch images by stripes.
     """
     __metaclass__ = ABCMeta
+
+    def get_stripe(self, stripe_id):
+        """
+        Parameters
+        ----------
+        stripe_id: int
+
+        Returns
+        -------
+        Stripe with given id
+        """
+        return LazyStripe(stripe_id, self)
 
     @abstractmethod
     def get_image(self, stripe_id, version_id):

@@ -13,7 +13,7 @@ class DemoImageSource(ImageSource):
     channels. Different channel versions are implementing by applying various [0,1] -> [0,1] functions on pixel values,
     because example image skimage.data.camera has only one channel.
     """
-    def __init__(self, stripe_count, version_count, channel_count=1, overlap=0.3, vertical_shifts=(0,)):
+    def __init__(self, stripe_count=1, version_count=1, channel_count=1, overlap=0.3, vertical_shifts=(0,)):
         """
         Parameters
         ----------
@@ -33,14 +33,14 @@ class DemoImageSource(ImageSource):
             left. Columns on the right will be appended to equalize number of columns in each image.
         """
         super(DemoImageSource, self).__init__()
-        self.stripe_count = stripe_count
-        self.version_count = version_count
-        self.channel_count = channel_count
+        self._stripe_count = stripe_count
+        self._version_count = version_count
+        self._channel_count = channel_count
         self.overlap = overlap
         self.vertical_shifts = vertical_shifts
 
         self.source_image = data.camera()
-        self.stripe_height = int(self.source_image.shape[0] / (self.stripe_count * (1. - self.overlap) + self.overlap))
+        self.stripe_height = int(self.source_image.shape[0] / (self._stripe_count * (1. - self.overlap) + self.overlap))
         self.overlap_height = int(self.stripe_height * self.overlap)
 
     def get_image(self, stripe_id, version_id):
@@ -48,22 +48,22 @@ class DemoImageSource(ImageSource):
         raw_stripe = self.__get_raw_stripe(stripe_id)
         shifted_stripe = self.__shift(self.__get_shift(stripe_id), raw_stripe)
 
-        channels = [self.__class__.__prepare_channel_stripe(shifted_stripe, blur_level, channel_id) for channel_id in range(self.channel_count)]
+        channels = [self.__class__.__prepare_channel_stripe(shifted_stripe, blur_level, channel_id) for channel_id in range(self.channel_count())]
 
         return numpy.concatenate(channels, axis=0)
 
     def stripe_count(self):
-        return self.stripe_count
+        return self._stripe_count
 
     def version_count(self):
-        return self.version_count
+        return self._version_count
 
     def channel_count(self):
-        return self.channel_count
+        return self._channel_count
 
     def __get_raw_stripe(self, stripe_id):
         row_from = (self.stripe_height - self.overlap_height) * stripe_id
-        row_to = row_from + self.stripe_height if stripe_id < self.stripe_count - 1 else self.source_image.shape[0]
+        row_to = row_from + self.stripe_height if stripe_id < self.stripe_count() - 1 else self.source_image.shape[0]
 
         return self.source_image[row_from:row_to]
 
@@ -83,10 +83,10 @@ class DemoImageSource(ImageSource):
         return left_shift, right_shift
 
     def __get_blur_level(self, version):
-        assert version < self.version_count
-        if self.version_count == 1:
+        assert version < self.version_count()
+        if self.version_count() == 1:
             return 0.
-        return 4.0 * version / (self.version_count - 1)
+        return 2.0 * version / (self.version_count() - 1)
 
     @classmethod
     def __prepare_channel_stripe(cls, stripe, blur_level, channel):
