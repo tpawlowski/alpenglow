@@ -49,10 +49,10 @@ class OldMatchingAlgorithm(MatchingAlgorithm):
     @classmethod
     def validate_shift(cls, final_shift, shifts):
         for index in [0, 1]:
-            std = numpy.std(shifts[:, index])
+            std = numpy.std(shifts[:, index] - final_shift[index])
 
-            if any(abs(shift - final_shift[index]) > std + 1 for shift in shifts[:, index]):
-                raise StripeMismatchException("Shift[{1}] in ({0}) is not around single value".format(shifts, index))
+            if any(abs(shift - final_shift[index]) > 3 * std + 1 for shift in shifts[:, index]):
+                raise StripeMismatchException("Shift[{1}] in ({0}) is not around single value {2} with std {3}".format(shifts, index, final_shift[index], std))
 
     @classmethod
     def validate_dimensions(cls, top_stripe, bottom_stripe):

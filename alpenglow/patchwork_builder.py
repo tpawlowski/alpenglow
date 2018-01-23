@@ -73,13 +73,20 @@ class PatchworkBuilder:
             row_to = row_from + stripe.get_channel_shape()[0]
             column_from = max(0, shift[1])
             column_to = min(total_width, shift[1] + stripe.get_shape()[1])
-            current_height = row_to
 
             for channel_id in range(first_stripe.channel_count()):
                 channel_offset = channel_id * channel_height
                 for version_id in range(version_count):
-                    # @todo: apply blur between (current_height - shift[0] and current_height)
-                    data[version_id, (channel_offset + row_from):(channel_offset + row_to), column_from:column_to] = \
-                        stripe.get_channel_image(version_id, channel_id)[:, max(0, -shift[1]):min(total_width - shift[1], stripe.get_shape()[1])]
+                    image_to_paste = stripe.get_channel_image(version_id, channel_id)[:, max(0, -shift[1]):min(total_width - shift[1], stripe.get_shape()[1])]
+
+                    if shift[0] > 0:
+                        for i in range(shift[0]):
+                            data[version_id, channel_offset + row_from + i, column_from:column_to] = data[version_id, channel_offset + row_from + i, column_from:column_to] * (1.0 - i / (shift[0] + 1)) + image_to_paste[i, :] * (i / (shift[0] + 1))
+                        data[version_id, (channel_offset + current_height):(channel_offset + row_to), column_from:column_to] = image_to_paste[shift[0]:, :]
+                    else:
+                        data[version_id, (channel_offset + row_from):(channel_offset + row_to), column_from:column_to] = image_to_paste
+
+
+            current_height = row_to
 
         return MemoryMappedStripe(data, first_stripe.channel_count())
