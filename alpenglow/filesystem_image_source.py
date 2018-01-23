@@ -14,7 +14,7 @@ class FilesystemImageSource(ImageSource):
 
     def get_image(self, stripe_id, version_id):
         path = self.path_format.format(stripe_id=self.stripe_ids[stripe_id], version_id=self.version_ids[version_id])
-        return tiff.TiffFile(path).asarray()
+        return tiff.TiffFile(path).asarray().swapaxes(0, 1)
 
     def stripe_count(self):
         return len(self.stripe_ids)
