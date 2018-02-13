@@ -2,6 +2,7 @@ import os
 import tempfile
 
 import numpy
+from time import time
 
 from alpenglow.memory_mapped_stripe import MemoryMappedStripe
 
@@ -22,6 +23,9 @@ class PatchworkBuilder:
 
         self.patchwork = []
 
+        self.stitching_times = []
+        self.result_building_time = None
+
     def stitch(self, stripe):
         """
         Stitches stripe on the bottom of the represented patchwork.
@@ -35,8 +39,10 @@ class PatchworkBuilder:
         StitchingMismatchException
             Raised when matching of stripe to current patchwork fails.
         """
+        stitching_start_time = time()
         if len(self.patchwork) == 0:
             self.patchwork.append((stripe, (0, 0)))
+            self.stitching_times.append(time() - stitching_start_time)
             return
 
         last_stripe, last_shift = self.patchwork[-1]
@@ -45,6 +51,7 @@ class PatchworkBuilder:
 
         shift = (relative_shift[0], last_shift[1] + relative_shift[1])
         self.patchwork.append((stripe, shift))
+        self.stitching_times.append(time() - stitching_start_time)
 
     def get(self):
         """
@@ -53,6 +60,7 @@ class PatchworkBuilder:
         stripe: MemoryMappedStripe
             Memory mapped stripe created from all stitched stripes.
         """
+        result_building_start_time = time()
         if len(self.patchwork) == 0:
             raise IndexError('No stripes were added to the patchwork')
 
@@ -80,13 +88,46 @@ class PatchworkBuilder:
                     image_to_paste = stripe.get_channel_image(version_id, channel_id)[:, max(0, -shift[1]):min(total_width - shift[1], stripe.get_shape()[1])]
 
                     if shift[0] > 0:
-                        for i in range(shift[0]):
-                            data[version_id, channel_offset + row_from + i, column_from:column_to] = data[version_id, channel_offset + row_from + i, column_from:column_to] * (1.0 - i / (shift[0] + 1)) + image_to_paste[i, :] * (i / (shift[0] + 1))
+                        data[version_id, (channel_offset + row_from):(channel_offset + current_height), column_from:column_to] = \
+                            self.__class__.gradient_merge_arrays(data[version_id, (channel_offset + row_from):(channel_offset + current_height), column_from:column_to], image_to_paste[0:shift[0], :])
                         data[version_id, (channel_offset + current_height):(channel_offset + row_to), column_from:column_to] = image_to_paste[shift[0]:, :]
                     else:
                         data[version_id, (channel_offset + row_from):(channel_offset + row_to), column_from:column_to] = image_to_paste
 
-
             current_height = row_to
 
+        self.result_building_time = time() - result_building_start_time
         return MemoryMappedStripe(data, first_stripe.channel_count())
+
+    def benchmark(self):
+        """
+
+        Returns
+        -------
+        stitching_times: [float]
+            Times in seconds taken for stitching nth stripe (fetching required images + matching).
+        result_building: float
+            Time in seconds taken for building resulting 3D array based on matches.
+        """
+        return self.stitching_times, self.result_building_time
+
+    @classmethod
+    def gradient_merge_arrays(cls, image_one, image_two):
+        """
+        Merges two images together, by linearly (from top to bottom) increasing transparency of image_one and
+        decreasing transparency of image_two.
+
+        Parameters
+        ----------
+        image_one: np.array
+        image_two: np.array
+
+        Returns
+        -------
+        image: np.array
+            array created by combining two source images.
+        """
+        height = image_one.shape[0]
+        vector_one = numpy.array([1.0 - (i + 1) / (height + 1) for i in range(height)])
+        vector_two = numpy.array([(i + 1) / (height + 1) for i in range(height)])
+        return (image_one * vector_one[:, numpy.newaxis]) + (image_two * vector_two[:, numpy.newaxis])

@@ -68,7 +68,7 @@ class TestDemoImageSource(TestCase):
         shape = image.shape
 
         assert_array_equal(image[:int(shape[0] / 2), :shape[1]],
-                           (gaussian(source.source_image[:int(shape[0] / 2), :shape[1]], 4.0) * 255).astype(image.dtype))
+                           (gaussian(source.source_image[:int(shape[0] / 2), :shape[1]], 2.0) * 255).astype(image.dtype))
 
     def test_middle_version_blur(self):
         # given
