@@ -1,3 +1,5 @@
+import concurrent
+
 import numpy
 
 from alpenglow.matching_algorithm import MatchingAlgorithm
@@ -32,13 +34,27 @@ class FftMatchingAlgorithm(MatchingAlgorithm):
         height = min(top_shape[0], bottom_shape[0]) // 2
         shape = (height, width)
 
-        correlation = numpy.zeros(shape, dtype=numpy.complex128)
-
+        futures = {}
         for version_id in self._versions:
             for channel_id in self._channels:
-                top_image = top_stripe.get_channel_image(version_id, channel_id)
-                bottom_image = bottom_stripe.get_channel_image(version_id, channel_id)
+                futures[top_stripe.get_channel_image_future(version_id, channel_id)] = ('top', version_id, channel_id)
+                futures[bottom_stripe.get_channel_image_future(version_id, channel_id)] = ('bottom', version_id, channel_id)
+
+        correlation = numpy.zeros(shape, dtype=numpy.complex128)
+
+        completed = {}
+        for future in concurrent.futures.as_completed(futures):
+            position = futures[future]
+            pair_key = (position[1], position[2])
+            try:
+                if position[0] == 'top':
+                    top_image, bottom_image = future.result(), completed[pair_key]
+                else:
+                    top_image, bottom_image = completed[pair_key], future.result()
+                del completed[pair_key]
                 correlation += self.cross_correlation(top_image[-height:, :width], bottom_image[:height, :width])
+            except KeyError:
+                completed[pair_key] = future.result()
 
         midpoints = numpy.array([numpy.fix(axis_size / 2) for axis_size in shape])
         maxima = numpy.unravel_index(numpy.argmax(numpy.abs(correlation)), correlation.shape)

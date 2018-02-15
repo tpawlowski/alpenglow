@@ -17,6 +17,12 @@ class BenchmarkingImageSource(ImageSource):
         self.fetch_times.append([time() - start_time, stripe_id, version_id])
         return image
 
+    def get_image_future(self, stripe_id, version_id):
+        start_time = time()
+        future = self.image_source.get_image_future(stripe_id, version_id)
+        future.add_done_callback(lambda _: self.fetch_times.append([time() - start_time, stripe_id, version_id]))
+        return future
+
     def stripe_count(self):
         return self.image_source.stripe_count()
 

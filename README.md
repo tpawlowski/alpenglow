@@ -20,11 +20,6 @@ python setup.py install
 ## Notebooks dependencies
 
 ```
-git clone https://github.com/gallantlab/cottoncandy.git
-cd cottoncandy
-python setup.py install
-cd -
-
 pip install jupyter
 
 pip install ipykernel

@@ -19,6 +19,7 @@ class LazyStripe(Stripe):
         self.stripe_id = stripe_id
         self.image_source = image_source
         self.cached_image = None
+        self.cached_image_future = None
 
     def get_image(self, version_id):
         """
@@ -27,6 +28,14 @@ class LazyStripe(Stripe):
         if self.cached_image is None or self.cached_image[0] != version_id:
             self.cached_image = [version_id, self.image_source.get_image(self.stripe_id, version_id)]
         return self.cached_image[1]
+
+    def get_image_future(self, version_id):
+        """
+        Fetches image from image_source and caches it by version_id keeping only 1 last value.
+        """
+        if self.cached_image_future is None or self.cached_image_future[0] != version_id:
+            self.cached_image_future = [version_id, self.image_source.get_image_future(self.stripe_id, version_id)]
+        return self.cached_image_future[1]
 
     def version_count(self):
         return self.image_source.version_count()

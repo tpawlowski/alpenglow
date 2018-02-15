@@ -1,4 +1,6 @@
 from abc import ABCMeta, abstractmethod
+from concurrent.futures import Future
+
 from numpy import ndarray
 
 from alpenglow.lazy_stripe import LazyStripe
@@ -9,6 +11,9 @@ class ImageSource:
     Interface for image source enabling to fetch images by stripes.
     """
     __metaclass__ = ABCMeta
+
+    def __init__(self):
+        self._executor = None
 
     def get_stripe(self, stripe_id):
         """
@@ -21,6 +26,24 @@ class ImageSource:
         Stripe with given id
         """
         return LazyStripe(stripe_id, self)
+
+    def get_image_future(self, stripe_id, version_id):
+        """
+        Returns future for requested image data.
+
+        Parameters
+        ----------
+        stripe_id
+        version_id
+
+        Returns
+        -------
+        Future<ndarray>
+            Future returning at some point ndarray with requested image data
+        """
+        future = Future()
+        future.set_result(self.get_image(stripe_id, version_id))
+        return future
 
     @abstractmethod
     def get_image(self, stripe_id, version_id):
