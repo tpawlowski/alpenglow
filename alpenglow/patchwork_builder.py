@@ -83,16 +83,18 @@ class PatchworkBuilder:
             column_from = max(0, shift[1])
             column_to = min(total_width, shift[1] + stripe.get_shape()[1])
 
-            for channel_id in range(first_stripe.channel_count()):
-                channel_offset = channel_id * channel_height
+            future_images = {}
+            for version_id in range(version_count):
+                future_images[stripe.get_image_future(version_id)] = version_id
 
-                future_images = {}
-                for version_id in range(version_count):
-                    future_images[stripe.get_channel_image_future(version_id, channel_id)] = version_id
+            for future_image in concurrent.futures.as_completed(future_images):
+                version_id = future_images[future_image]
 
-                for future_image in concurrent.futures.as_completed(future_images):
-                    version_id = future_images[future_image]
-                    image_to_paste = future_image.result()[:, max(0, -shift[1]):min(total_width - shift[1], stripe.get_shape()[1])]
+                for channel_id in range(first_stripe.channel_count()):
+                    channel_offset = channel_id * channel_height
+
+                    image_to_paste = future_image.result()[(channel_id * stripe.get_channel_shape()[0]):((channel_id + 1) * stripe.get_channel_shape()[0]),
+                                     max(0, -shift[1]):min(total_width - shift[1], stripe.get_shape()[1])]
 
                     if shift[0] > 0:
                         data[version_id, (channel_offset + row_from):(channel_offset + current_height), column_from:column_to] = \
