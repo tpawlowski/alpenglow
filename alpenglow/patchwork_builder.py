@@ -67,9 +67,10 @@ class PatchworkBuilder:
 
         first_stripe = self.patchwork[0][0]
 
-        channel_height = sum([stripe.get_channel_shape()[0] - shift[0] for stripe, shift in self.patchwork])
-        total_height = channel_height * first_stripe.channel_count()
-        total_width = first_stripe.get_shape()[1]
+        channel_count = first_stripe.channel_count()
+        total_height = sum([stripe.get_channel_shape()[0] - shift[0] for stripe, shift in self.patchwork])
+        channel_width = first_stripe.get_channel_shape()[1]
+        total_width = channel_width * channel_count
         version_count = first_stripe.version_count()
 
         filename = os.path.join(tempfile.mkdtemp(), 'stripe.dat')
@@ -80,8 +81,10 @@ class PatchworkBuilder:
         for stripe, shift in self.patchwork:
             row_from = current_height - shift[0]
             row_to = row_from + stripe.get_channel_shape()[0]
+
+            stripe_channel_width = stripe.get_channel_shape()[1]
             column_from = max(0, shift[1])
-            column_to = min(total_width, shift[1] + stripe.get_shape()[1])
+            column_to = min(channel_width, shift[1] + stripe_channel_width)
 
             future_images = {}
             for version_id in range(version_count):
@@ -90,18 +93,17 @@ class PatchworkBuilder:
             for future_image in concurrent.futures.as_completed(future_images):
                 version_id = future_images[future_image]
 
-                for channel_id in range(first_stripe.channel_count()):
-                    channel_offset = channel_id * channel_height
+                for channel_id in range(channel_count):
+                    channel_offset = channel_id * channel_width
 
-                    image_to_paste = future_image.result()[(channel_id * stripe.get_channel_shape()[0]):((channel_id + 1) * stripe.get_channel_shape()[0]),
-                                     max(0, -shift[1]):min(total_width - shift[1], stripe.get_shape()[1])]
+                    image_to_paste = future_image.result()[:, (channel_id * stripe_channel_width + max(0, -shift[1])):(channel_id * stripe_channel_width + max(0, -shift[1]) + column_to - column_from)]
 
                     if shift[0] > 0:
-                        data[version_id, (channel_offset + row_from):(channel_offset + current_height), column_from:column_to] = \
-                            self.__class__.gradient_merge_arrays(data[version_id, (channel_offset + row_from):(channel_offset + current_height), column_from:column_to], image_to_paste[0:shift[0], :])
-                        data[version_id, (channel_offset + current_height):(channel_offset + row_to), column_from:column_to] = image_to_paste[shift[0]:, :]
+                        data[version_id, (current_height - shift[0]):current_height, (channel_offset + column_from):(channel_offset + column_to)] = \
+                            self.__class__.gradient_merge_arrays(data[version_id, (current_height - shift[0]):current_height, (channel_offset + column_from):(channel_offset + column_to)], image_to_paste[0:shift[0], :])
+                        data[version_id, current_height:row_to, (channel_offset + column_from):(channel_offset + column_to)] = image_to_paste[shift[0]:, :]
                     else:
-                        data[version_id, (channel_offset + row_from):(channel_offset + row_to), column_from:column_to] = image_to_paste
+                        data[version_id, row_from:row_to, (channel_offset + column_from):(channel_offset + column_to)] = image_to_paste
 
             current_height = row_to
 

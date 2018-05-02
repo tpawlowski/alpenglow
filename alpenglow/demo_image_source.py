@@ -50,7 +50,7 @@ class DemoImageSource(ImageSource):
 
         channels = [self.__class__.__prepare_channel_stripe(shifted_stripe, blur_level, channel_id) for channel_id in range(self.channel_count())]
 
-        return numpy.concatenate(channels, axis=0)
+        return numpy.concatenate(channels, axis=1)
 
     def stripe_count(self):
         return self._stripe_count

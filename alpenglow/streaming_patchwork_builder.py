@@ -24,7 +24,7 @@ class StreamingPatchworkBuilder:
         """
         self.matching_algorithm = matching_algorithm
         self.margin = margin
-        self.total_width = None
+        self.channel_width = None
 
         self.patchwork = []
 
@@ -55,9 +55,9 @@ class StreamingPatchworkBuilder:
 
         if len(self.patchwork) == 0:
             self.patchwork.append((stripe, (0, self.margin)))
-            self.total_width = stripe.get_shape()[1] + 2 * self.margin
+            self.channel_width = stripe.get_channel_shape()[1] + 2 * self.margin
 
-            shape = (stripe.version_count(), 0, self.total_width)
+            shape = (stripe.version_count(), 0, stripe.channel_count() * self.channel_width)
             data = numpy.empty(shape, stripe.get_dtype())
             empty_data = MemoryMappedStripe(data, stripe.channel_count())
             self.stitching_times.append(time() - stitching_start_time)
@@ -70,7 +70,7 @@ class StreamingPatchworkBuilder:
             shift = (relative_shift[0], last_shift[1] + relative_shift[1])
             self.patchwork.append((stripe, shift))
             if len(self.patchwork) > 2:
-                self.patchwork[-2] = None
+                self.patchwork[-2] = None  # saves memory
 
             self.stitching_times.append(time() - stitching_start_time)
             return self.get_newly_fixed(last_stripe, last_shift, stripe, shift)
@@ -101,15 +101,14 @@ class StreamingPatchworkBuilder:
         """
         result_building_start_time = time()
 
-        channel_height = previous_stripe.get_channel_shape()[0] - previous_shift[0]
         channel_count = previous_stripe.channel_count()
         version_count = previous_stripe.version_count()
-        total_height = channel_height * channel_count
-        total_width = self.total_width
+        height = previous_stripe.get_channel_shape()[0] - previous_shift[0]
+        total_width = self.channel_width * channel_count
 
-        data = numpy.zeros((version_count, total_height, total_width), dtype=previous_stripe.get_dtype())
+        data = numpy.zeros((version_count, height, total_width), dtype=previous_stripe.get_dtype())
 
-        # paint previous image
+        # fetch rows from previous stripe (if they are not in cache)
         if self.image_cache is None:
             self.image_cache = {}
             future_images = {}
@@ -118,20 +117,22 @@ class StreamingPatchworkBuilder:
             for future_image in concurrent.futures.as_completed(future_images):
                 self.image_cache[future_images[future_image]] = future_image.result()
 
+        # include previous stripe in the result
         for version_id in range(version_count):
-            previous_channel_height = previous_stripe.get_channel_shape()[0]
+            previous_channel_width = previous_stripe.get_channel_shape()[1]
+
             row_from = previous_shift[0]
             row_to = previous_stripe.get_channel_shape()[0]
+
             column_from = max(previous_shift[1], 0)
-            column_to = min(total_width, previous_shift[1] + previous_stripe.get_channel_shape()[1])
+            column_to = min(self.channel_width, previous_shift[1] + previous_stripe.get_channel_shape()[1])
 
             image = self.image_cache[version_id]
             for channel_id in range(channel_count):
-                channel_offset = channel_id * channel_height
+                channel_offset = channel_id * self.channel_width
 
-                data[version_id, channel_offset:(channel_offset + row_to - row_from), column_from:column_to] =\
-                    image[(channel_id * previous_channel_height + row_from):(channel_id * previous_channel_height + row_to),
-                        max(0, -previous_shift[1]):min(total_width - previous_shift[1], previous_stripe.get_channel_shape()[1])]
+                data[version_id, 0:(row_to - row_from), (channel_offset + column_from):(channel_offset + column_to)] =\
+                    image[row_from:row_to, (channel_id * previous_channel_width + max(0, -previous_shift[1])):(channel_id * previous_channel_width + max(0, -previous_shift[1]) + column_to - column_from)]
 
         if shift[0] == 0:
             self.image_cache = None
@@ -145,17 +146,16 @@ class StreamingPatchworkBuilder:
                 self.image_cache[version_id] = future_image.result()
 
                 for channel_id in range(channel_count):
-                    channel_offset = channel_id * channel_height
-                    stripe_channel_height = stripe.get_channel_shape()[0]
+                    channel_offset = channel_id * self.channel_width
+                    stripe_width = stripe.get_channel_shape()[1]
                     column_from = max(shift[1], 0)
-                    column_to = min(total_width, shift[1] + stripe.get_channel_shape()[1])
+                    column_to = min(self.channel_width, shift[1] + stripe.get_channel_shape()[1])
 
-                    image_to_paste = future_image.result()[(channel_id * stripe_channel_height):(channel_id * stripe_channel_height + shift[0]),
-                                     max(0, -shift[1]):min(total_width - shift[1], stripe.get_shape()[1])]
+                    image_to_paste = future_image.result()[0:shift[0], (channel_id * stripe_width + max(0, -shift[1])):(channel_id * stripe_width + max(0, -shift[1]) + column_to - column_from)]
 
-                    data[version_id, (channel_offset + channel_height - shift[0]):(channel_offset + channel_height), column_from:column_to] = \
+                    data[version_id, (height - shift[0]):height, (channel_offset + column_from):(channel_offset + column_to)] = \
                         PatchworkBuilder.gradient_merge_arrays(
-                            data[version_id, (channel_offset + channel_height - shift[0]):(channel_offset + channel_height), column_from:column_to],
+                            data[version_id, (height - shift[0]):height, (channel_offset + column_from):(channel_offset + column_to)],
                             image_to_paste)
 
         result = MemoryMappedStripe(data, channel_count)
@@ -171,44 +171,9 @@ class StreamingPatchworkBuilder:
         """
         if len(self.patchwork) == 0:
             raise IndexError('No stripes were added to the patchwork')
-        result_building_start_time = time()
 
         previous_stripe, previous_shift = self.patchwork[-1]
-        channel_height = previous_stripe.get_channel_shape()[0] - previous_shift[0]
-        channel_count = previous_stripe.channel_count()
-        version_count = previous_stripe.version_count()
-        total_height = channel_height * channel_count
-        total_width = self.total_width
-
-        data = numpy.zeros((version_count, total_height, total_width), dtype=previous_stripe.get_dtype())
-
-        # paint previous image
-        if self.image_cache is None:
-            self.image_cache = {}
-            future_images = {}
-            for version_id in range(version_count):
-                future_images[previous_stripe.get_image_future(version_id)] = version_id
-            for future_image in concurrent.futures.as_completed(future_images):
-                self.image_cache[future_images[future_image]] = future_image.result()
-
-        for version_id in range(version_count):
-            previous_channel_height = previous_stripe.get_channel_shape()[0]
-            row_from = previous_shift[0]
-            row_to = previous_stripe.get_channel_shape()[0]
-            column_from = max(previous_shift[1], 0)
-            column_to = min(total_width, previous_shift[1] + previous_stripe.get_channel_shape()[1])
-
-            image = self.image_cache[version_id]
-            for channel_id in range(channel_count):
-                channel_offset = channel_id * channel_height
-
-                data[version_id, channel_offset:(channel_offset + row_to - row_from), column_from:column_to] = \
-                    image[(channel_id * previous_channel_height + row_from):(channel_id * previous_channel_height + row_to),
-                    max(0, -previous_shift[1]):min(total_width - previous_shift[1], previous_stripe.get_channel_shape()[1])]
-
-        result = MemoryMappedStripe(data, previous_stripe.channel_count())
-        self.result_building_times.append(time() - result_building_start_time)
-        return result
+        return self.get_newly_fixed(previous_stripe, previous_shift, None, (0, 0))
 
     def benchmark(self):
         """

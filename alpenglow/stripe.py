@@ -76,11 +76,11 @@ class Stripe:
         Returns
         -------
         ndarray
-            NumPy array of shape (height / channel_count, width) containing floats representing pixel values
+            NumPy array of shape (height, width/channel_count) containing floats representing pixel values
         """
         image = self.get_image(version_id)
-        channel_height = image.shape[0] // self.channel_count()
-        return image[(channel_id * channel_height):((channel_id + 1) * channel_height), :]
+        channel_width = image.shape[1] // self.channel_count()
+        return image[:, (channel_id * channel_width):((channel_id + 1) * channel_width)]
 
     def get_image_future(self, version_id):
         """
@@ -111,12 +111,12 @@ class Stripe:
         Returns
         -------
         ndarray: Future
-            Future for NumPy array of shape (height / channel_count, width) containing floats representing pixel values
+            Future for NumPy array of shape (height, width / channel_count) containing floats representing pixel values
         """
         future = Future()
         channel_count = self.channel_count()
         self.get_image_future(version_id).add_done_callback(
-            lambda image: future.set_result(image.result()[(channel_id * (image.result().shape[0] // channel_count)):((channel_id + 1) * (image.result().shape[0] // channel_count)), :]))
+            lambda image: future.set_result(image.result()[:, (channel_id * (image.result().shape[1] // channel_count)):((channel_id + 1) * (image.result().shape[1] // channel_count))]))
         return future
 
     def get_channel_shape(self):
@@ -127,4 +127,4 @@ class Stripe:
         shape: tuple(int, int)
             height, width of single channel image (same in each version and channel)
         """
-        return self.get_shape()[0] // self.channel_count(), self.get_shape()[1]
+        return self.get_shape()[0], self.get_shape()[1] // self.channel_count()
