@@ -4,7 +4,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from skimage.filters import gaussian
 from skimage.util import invert
 
-from alpenglow.demo_image_source import DemoImageSource
+from alpenglow.image_sources.demo import DemoImageSource
 
 
 class TestDemoImageSource(TestCase):
@@ -43,7 +43,7 @@ class TestDemoImageSource(TestCase):
         # then
         shape = image.shape
 
-        assert_array_equal(image[:int(shape[0]/2), :shape[1]], source.source_image[0:int(shape[0]/2), 0:shape[1]])
+        assert_array_equal(image[:shape[0], :int(shape[1]/2)], source.source_image[0:shape[0], 0:int(shape[1]/2)])
 
     def test_second_channel_is_inverted(self):
         # given
@@ -55,7 +55,7 @@ class TestDemoImageSource(TestCase):
         # then
         shape = image.shape
 
-        assert_array_equal(image[int(shape[0] / 2):, :shape[1]], invert(source.source_image[0:int(shape[0] / 2), 0:shape[1]]))
+        assert_array_equal(image[:, int(shape[1] / 2):], invert(source.source_image[:shape[0], :int(shape[1] / 2)]))
 
     def test_versions_are_blurred(self):
         # given
@@ -67,8 +67,8 @@ class TestDemoImageSource(TestCase):
         # then
         shape = image.shape
 
-        assert_array_equal(image[:int(shape[0] / 2), :shape[1]],
-                           (gaussian(source.source_image[:int(shape[0] / 2), :shape[1]], 2.0) * 255).astype(image.dtype))
+        assert_array_equal(image[:, :int(shape[1] / 2)],
+                           (gaussian(source.source_image[:shape[0], :int(shape[1] / 2)], 2.0) * 255).astype(image.dtype))
 
     def test_middle_version_blur(self):
         # given
@@ -80,6 +80,6 @@ class TestDemoImageSource(TestCase):
         # then
         shape = image.shape
 
-        assert_array_almost_equal(image[:int(shape[0] // 2), :shape[1]],
-                                  (gaussian(source.source_image[:int(shape[0] // 2), :shape[1]], 2.0) * 255).astype(image.dtype),
+        assert_array_almost_equal(image[:shape[0], :int(shape[1] // 2)],
+                                  (gaussian(source.source_image[:shape[0], :int(shape[1] // 2)], 2.0) * 255).astype(image.dtype),
                                   decimal=0)

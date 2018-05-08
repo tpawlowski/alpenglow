@@ -5,7 +5,7 @@ import tempfile
 import numpy
 from time import time
 
-from alpenglow.memory_mapped_stripe import MemoryMappedStripe
+from alpenglow.stripes.memory_mapped import MemoryMappedStripe
 
 
 class PatchworkBuilder:

@@ -2,7 +2,7 @@ import concurrent
 
 import numpy
 
-from alpenglow.matching_algorithm import MatchingAlgorithm
+from alpenglow.matching_algorithms.matching_algorithm import MatchingAlgorithm
 
 
 class FftMatchingAlgorithm(MatchingAlgorithm):

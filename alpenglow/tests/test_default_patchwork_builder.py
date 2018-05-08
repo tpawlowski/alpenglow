@@ -3,12 +3,12 @@ from unittest import TestCase
 import numpy
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from alpenglow.demo_image_source import DemoImageSource
-from alpenglow.old_matching_algorithm import OldMatchingAlgorithm
-from alpenglow.patchwork_builder import PatchworkBuilder
+from alpenglow.image_sources.demo import DemoImageSource
+from alpenglow.matching_algorithms.old import OldMatchingAlgorithm
+from alpenglow.patchwork_builders.default import PatchworkBuilder
 
 
-class TestPatchworkBuilder(TestCase):
+class TestDefaultPatchworkBuilder(TestCase):
     def test_single_stripe(self):
         # given
         matching_algorithm = OldMatchingAlgorithm([0], [0])

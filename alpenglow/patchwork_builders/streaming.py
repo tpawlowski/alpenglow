@@ -4,7 +4,7 @@ import numpy
 from time import time
 
 from alpenglow.memory_mapped_stripe import MemoryMappedStripe
-from alpenglow.patchwork_builder import PatchworkBuilder
+from alpenglow.patchwork_builders.default import PatchworkBuilder
 
 
 class StreamingPatchworkBuilder:

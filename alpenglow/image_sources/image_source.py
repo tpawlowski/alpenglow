@@ -3,7 +3,7 @@ from concurrent.futures import Future
 
 from numpy import ndarray
 
-from alpenglow.lazy_stripe import LazyStripe
+from alpenglow.stripes.lazy import LazyStripe
 
 
 class ImageSource:

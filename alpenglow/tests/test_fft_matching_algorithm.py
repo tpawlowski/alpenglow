@@ -2,8 +2,8 @@ from unittest import TestCase
 
 from numpy.testing import assert_equal
 
-from alpenglow.demo_image_source import DemoImageSource
-from alpenglow.fft_matching_algorithm import FftMatchingAlgorithm
+from alpenglow.image_sources.demo import DemoImageSource
+from alpenglow.matching_algorithms.fft import FftMatchingAlgorithm
 
 
 class TestFftMatchingAlgorithm(TestCase):

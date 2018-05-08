@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from alpenglow.benchmarking_image_source import BenchmarkingImageSource
-from alpenglow.demo_image_source import DemoImageSource
+from alpenglow.image_sources.benchmarking import BenchmarkingImageSource
+from alpenglow.image_sources.demo import DemoImageSource
 
 
 class TestBenchmarkingImageSource(TestCase):

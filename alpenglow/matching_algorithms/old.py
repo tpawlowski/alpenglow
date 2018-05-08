@@ -1,8 +1,14 @@
 import numpy
 from skimage.feature import register_translation
 
-from alpenglow.matching_algorithm import MatchingAlgorithm
-from alpenglow.stripe_mismatch_exception import StripeMismatchException
+from alpenglow.matching_algorithms.matching_algorithm import MatchingAlgorithm
+
+
+class StripeMismatchException(Exception):
+    """
+    Exception raised when stitching of stripe to patchwork fails.
+    """
+    pass
 
 
 class OldMatchingAlgorithm(MatchingAlgorithm):

@@ -1,4 +1,4 @@
-from alpenglow.image_source import ImageSource
+from alpenglow.image_sources.image_source import ImageSource
 import skimage.external.tifffile as tiff
 
 

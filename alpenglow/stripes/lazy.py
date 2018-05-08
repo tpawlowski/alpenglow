@@ -1,4 +1,4 @@
-from alpenglow.stripe import Stripe
+from alpenglow.stripes.stripe import Stripe
 
 
 class LazyStripe(Stripe):

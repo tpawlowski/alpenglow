@@ -2,7 +2,7 @@ import numpy
 import skimage
 from skimage import data, dtype_limits
 
-from alpenglow.image_source import ImageSource
+from alpenglow.image_sources.image_source import ImageSource
 
 
 class DemoImageSource(ImageSource):

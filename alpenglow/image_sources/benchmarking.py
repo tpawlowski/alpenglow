@@ -1,6 +1,6 @@
 from time import time
 
-from alpenglow.image_source import ImageSource
+from alpenglow.image_sources.image_source import ImageSource
 
 
 class BenchmarkingImageSource(ImageSource):

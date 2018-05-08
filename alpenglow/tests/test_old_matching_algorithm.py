@@ -3,8 +3,8 @@ from unittest import TestCase
 import numpy
 from numpy.testing import assert_array_almost_equal, assert_equal
 
-from alpenglow.demo_image_source import DemoImageSource
-from alpenglow.old_matching_algorithm import OldMatchingAlgorithm
+from alpenglow.image_sources.demo import DemoImageSource
+from alpenglow.matching_algorithms.old import OldMatchingAlgorithm
 
 
 class TestOldMatchingAlgorithm(TestCase):
