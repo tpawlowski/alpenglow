@@ -93,7 +93,7 @@ class DemoImageSource(ImageSource):
         max = dtype_limits(stripe, clip_negative=False)[1]
 
         channel_map = cls.__channel_function(channel)
-        pixel_map = numpy.vectorize(lambda x: round(channel_map(x / max) * max))
+        pixel_map = numpy.vectorize(lambda x: round(channel_map(float(x) / max) * max))
 
         mapped_stripe = pixel_map(stripe)
         blurred_stripe = skimage.filters.gaussian(mapped_stripe, blur_level).astype(stripe.dtype)
