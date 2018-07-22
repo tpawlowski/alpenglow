@@ -139,6 +139,6 @@ class PatchworkBuilder:
             array created by combining two source images.
         """
         height = image_one.shape[0]
-        vector_one = numpy.array([1.0 - (i + 1) / (height + 1) for i in range(height)])
-        vector_two = numpy.array([(i + 1) / (height + 1) for i in range(height)])
+        vector_one = numpy.array([1.0 - float(i + 1) / (height + 1) for i in range(height)])
+        vector_two = numpy.array([float(i + 1) / (height + 1) for i in range(height)])
         return (image_one * vector_one[:, numpy.newaxis]) + (image_two * vector_two[:, numpy.newaxis])
