@@ -3,7 +3,7 @@ from os.path import join as pjoin
 
 # Format expected by setup.py and doc/source/conf.py: string of form "X.Y.Z"
 _version_major = 0
-_version_minor = 4
+_version_minor = 5
 _version_micro = ''  # use '' for first of series, number for 1 and above
 _version_extra = 'dev'
 # _version_extra = ''  # Uncomment this for full releases
@@ -50,4 +50,4 @@ MAJOR = _version_major
 MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
-REQUIRES = ["numpy", "scikit-image", "boto3", "Pillow"]
+REQUIRES = ["boto3==1.7.33", "scikit-image==0.14.0", "numpy==1.14.4"]

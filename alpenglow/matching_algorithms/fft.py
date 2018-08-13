@@ -52,7 +52,7 @@ class FftMatchingAlgorithm(MatchingAlgorithm):
                 else:
                     top_image, bottom_image = completed[pair_key], future.result()
                 del completed[pair_key]
-                correlation += self.cross_correlation(top_image[-height:, :width], bottom_image[:height, :width])
+                correlation += FftMatchingAlgorithm.cross_correlation(top_image[-height:, :width], bottom_image[:height, :width])
             except KeyError:
                 completed[pair_key] = future.result()
 
@@ -65,7 +65,8 @@ class FftMatchingAlgorithm(MatchingAlgorithm):
 
         return shifts
 
-    def cross_correlation(self, top_image, bottom_image):
+    @classmethod
+    def cross_correlation(cls, top_image, bottom_image):
         src_image = numpy.array(top_image, dtype=numpy.complex128, copy=False)
         target_image = numpy.array(bottom_image, dtype=numpy.complex128, copy=False)
         src_freq = numpy.fft.fftn(src_image)

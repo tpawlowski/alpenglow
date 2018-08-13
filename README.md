@@ -31,3 +31,72 @@ python -m ipykernel install --user --name=venv
 ```
 
 Before running notebooks change the jupyters kernel to venv. In top menu select "Kernel -> Change kernel -> venv".
+
+# Heron pipeline
+
+## Installation
+
+### Heron
+
+open https://github.com/apache/incubator-heron/releases and download proper heron install script.
+```
+wget https://github.com/apache/incubator-heron/releases/download/0.17.8/heron-install-0.17.8-darwin.sh
+chmod +x heron-*.sh
+```
+
+Install in `~/.heron/` with command: 
+```
+./heron-install-0.17.8-darwin.sh --user
+```
+
+Afterwards make sure that `~/bin` is in the path. If you don't want to add just prefix each heron execution with `~/bin/`.
+
+
+
+### Pants
+
+Pants script is already included in the repo
+
+### Python
+
+```
+virtualenv -p python venv_heron
+source venv_heron/bin/activate
+pip install -r requirements_heron.txt
+python setup.py install
+```
+
+## Building
+
+Heron cluster requires bundling a topology with all its dependencies before submitting. Following command will do that.
+```
+./pants binary src/python/alpenglow-topology
+```
+
+## Submitting
+following command pushes the .pex topology to heron cluster:
+```
+heron submit local --deploy-deactivated dist/alpenglow-topology.pex - Alpenglow_Topology
+```
+
+## Starting
+
+Note: you need to wait couple of seconds before the topology becomes ready to activate.
+```
+heron activate local Alpenglow_Topology
+```
+
+## Monitoring
+
+You can monitor the execution of the topology either with `heron-tracker`, `heron-ui` and visiting `http://localhost:8889` or by reading logs from: `~/.herondata/topologies/local/tpawlowski/Alpenglow_Topology/log-files`.
+
+## Stoping
+```
+heron deactivate local Alpenglow_Topology
+```
+
+## Cleaning (removing topology from cluster)
+
+```
+heron kill local Alpenglow_Topology
+```

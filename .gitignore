@@ -11,3 +11,9 @@ alpenglow.egg-info/
 venv
 notebooks/.ipynb_checkpoints/
 data/
+.pants.d
+.pids
+.pants.workdir.file_lock
+.cache
+venv_heron
+heron-install-*.sh
