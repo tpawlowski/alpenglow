@@ -96,7 +96,7 @@ class CorrelationState:
         self.first_stripe = 0
         self.bottoms = {}
         self.tops = {}
-
+        print("create state")
 
     def apply(self, version, stripe, image):
         ready_correlations = []
@@ -158,6 +158,7 @@ class ShiftState:
 
         return [stripe, list(shifts), shape]
 
+
 class PositionState:
     def __init__(self, config):
         self.margin = config.margin
@@ -187,6 +188,7 @@ class PositionState:
             self.current += 1
 
         return positions
+
 
 class DelayDownloadState:
     def __init__(self, config):
