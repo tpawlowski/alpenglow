@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+import numpy
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from skimage.filters import gaussian
 from skimage.util import invert
@@ -68,7 +69,7 @@ class TestDemoImageSource(TestCase):
         shape = image.shape
 
         assert_array_equal(image[:, :int(shape[1] / 2)],
-                           (gaussian(source.source_image[:shape[0], :int(shape[1] / 2)], 2.0) * 255).astype(image.dtype))
+                           numpy.vectorize(lambda x: int(round(x * 255)))(gaussian(source.source_image[:shape[0], :int(shape[1] / 2)], 2.0)).astype(image.dtype))
 
     def test_middle_version_blur(self):
         # given
@@ -81,5 +82,5 @@ class TestDemoImageSource(TestCase):
         shape = image.shape
 
         assert_array_almost_equal(image[:shape[0], :int(shape[1] // 2)],
-                                  (gaussian(source.source_image[:shape[0], :int(shape[1] // 2)], 2.0) * 255).astype(image.dtype),
+                                  numpy.vectorize(lambda x: int(round(x * 255)))(gaussian(source.source_image[:shape[0], :int(shape[1] // 2)], 2.0)).astype(image.dtype),
                                   decimal=0)

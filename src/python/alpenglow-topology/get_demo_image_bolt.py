@@ -1,17 +1,19 @@
 from heronpy.api.bolt.bolt import Bolt
 
-from alpenglow.image_sources.demo import DemoImageSource
+from alpenglow.benchmark import get_image_source, BenchmarkConfig
 
 
 class GetDemoImageBolt(Bolt):
-    outputs = ['version', 'stripe', 'image']
+    outputs = ['stripe', 'version', 'image']
 
     def initialize(self, config, context):
-        self.image_source = DemoImageSource(**config['image_source_config'])
         self.log("Initializing GetDemoImageBolt...")
+        self.config = BenchmarkConfig.from_dict(config["benchmark_config"])
+        self.image_source = get_image_source(self.config)
 
     def process(self, tup):
-        (version, stripe) = tup.values
-        self.log("request {}".format((version, stripe)))
+        stripe, version = tup.values
+        if self.config.verbosity > 0:
+            self.log("request {}".format((version, stripe)))
         image = self.image_source.get_image(stripe, version)
-        self.emit([version, stripe, image])
+        self.emit([stripe, version, image])

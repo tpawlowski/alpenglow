@@ -100,3 +100,14 @@ heron deactivate local Alpenglow_Topology
 ```
 heron kill local Alpenglow_Topology
 ```
+
+# Wallaroo
+
+## Installation
+
+Instructions are available at `https://docs.wallaroolabs.com/book/getting-started/run-a-wallaroo-application-docker.html`.
+
+```
+docker pull wallaroo-labs-docker-wallaroolabs.bintray.io/release/wallaroo:0.5.1
+```
+
