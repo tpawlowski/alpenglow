@@ -161,6 +161,7 @@ class ShiftState:
 
 class PositionState:
     def __init__(self, config):
+        self.config = config
         self.margin = config.margin
 
         self.waiting = {}
