@@ -1,0 +1,5 @@
+alpenglow==0.5.7.dev0
+dask==0.19.1
+numpy==1.14.4
+scikit-image==0.14.0
+streamz==0.3.0

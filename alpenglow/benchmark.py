@@ -32,7 +32,7 @@ class BenchmarkConfig:
             stripe_count=self.stripe_count,
             version_count=self.version_count,
             channel_count=self.channel_count,
-            stripe_shift=self.stripe_shifts,
+            stripe_shifts=self.stripe_shifts,
             stripe_overlap=self.stripe_overlap,
             sample_size=self.sample_size,
             margin=self.margin,
