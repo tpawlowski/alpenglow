@@ -11,14 +11,15 @@ from correlations_bolt import CorrelationsBolt
 from shifts_bolt import ShiftsBolt
 from absolute_positions_bolt import AbsolutePositionsBolt
 from output_image_bolt import OutputImageBolt
-from save_image_to_file_bolt import SaveImageToFileBolt
 from delay_image_download_bolt import DelayImageDownloadBolt
+from windowing_bolt import WindowingBolt
+from save_image_to_file_bolt import SaveImageToFileBolt
 
 if __name__ == '__main__':
     builder = TopologyBuilder("Alpenglow_Topology")
 
     config = {
-        "benchmark_config": dict(verbosity=1, version_count=5, stripe_count=18)
+        "benchmark_config": dict(verbosity=1, version_count=5, stripe_count=18, window_length=64, window_step=32)
     }
 
     # Emits information that images are ready for download
@@ -69,8 +70,12 @@ if __name__ == '__main__':
                                                   absolute_positions_bolt: Grouping.fields('version')},
                                           config=config)
 
-    output_to_tmp_dir = builder.add_bolt("output_to_tmp_dir", SaveImageToFileBolt, par=2,
-                                         inputs={output_images_bolt: Grouping.fields('version')})
+    windowing_bolt = builder.add_bolt("windowing_bolt", WindowingBolt, par=1,
+                                      config=config,
+                                      inputs={output_images_bolt: Grouping.ALL})
+
+    output_to_tmp_dir = builder.add_bolt("output_to_tmp_dir", SaveImageToFileBolt, par=1,
+                                         inputs={windowing_bolt: Grouping.ALL})
 
     # Finalize the topology graph
     builder.build_and_submit()

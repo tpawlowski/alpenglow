@@ -17,7 +17,9 @@ class BenchmarkConfig:
                  stripe_overlap=0.4,
                  sample_size=3,
                  margin=30,
-                 verbosity=0):
+                 verbosity=0,
+                 window_length=512,
+                 window_step=256):
         self.stripe_count = stripe_count
         self.version_count = version_count
         self.channel_count = channel_count
@@ -26,6 +28,9 @@ class BenchmarkConfig:
         self.sample_size = sample_size
         self.margin = margin
         self.verbosity = verbosity
+        self.window_length=window_length
+        self.window_step=window_step
+
 
     def to_dict(self):
         return dict(
@@ -36,7 +41,9 @@ class BenchmarkConfig:
             stripe_overlap=self.stripe_overlap,
             sample_size=self.sample_size,
             margin=self.margin,
-            verbosity=self.verbosity
+            verbosity=self.verbosity,
+            window_length=self.window_length,
+            window_step=self.window_step
         )
 
     @classmethod
