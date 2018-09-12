@@ -44,13 +44,17 @@ class DemoImageSource(ImageSource):
         self.overlap_height = int(self.stripe_height * self.overlap)
 
     def get_image(self, stripe_id, version_id):
+        stripe_image_id = stripe_id % self.stripe_count()
+        if (stripe_id // self.stripe_count()) % 2 == 1:
+            stripe_image_id = self.stripe_count() - 1 - stripe_image_id
+
         blur_level = self.__get_blur_level(version_id)
-        raw_stripe = self.__get_raw_stripe(stripe_id)
-        shifted_stripe = self.__shift(self.__get_shift(stripe_id), raw_stripe)
+        raw_stripe = self.__get_raw_stripe(stripe_image_id)
+        shifted_stripe = self.__shift(self.__get_shift(stripe_image_id), raw_stripe)
 
         channels = [self.__class__.__prepare_channel_stripe(shifted_stripe, blur_level, channel_id) for channel_id in range(self.channel_count())]
 
-        return numpy.concatenate(channels, axis=1)
+        return ImageSource.loop_image(numpy.concatenate(channels, axis=1), stripe_id, self.stripe_count())
 
     def stripe_count(self):
         return self._stripe_count

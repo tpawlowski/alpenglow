@@ -3,7 +3,7 @@ import concurrent
 import numpy
 from time import time
 
-from alpenglow.memory_mapped_stripe import MemoryMappedStripe
+from alpenglow.stripes.memory_mapped import MemoryMappedStripe
 from alpenglow.patchwork_builders.default import PatchworkBuilder
 
 
@@ -66,6 +66,8 @@ class StreamingPatchworkBuilder:
             last_stripe, last_shift = self.patchwork[-1]
 
             relative_shift = self.matching_algorithm.match(last_stripe, stripe)
+
+            print("relative shift: {} stripe height: {}".format(relative_shift, stripe.get_channel_shape()))
 
             shift = (relative_shift[0], last_shift[1] + relative_shift[1])
             self.patchwork.append((stripe, shift))

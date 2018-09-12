@@ -1,3 +1,4 @@
+import numpy
 from abc import ABCMeta, abstractmethod
 from concurrent.futures import Future
 
@@ -44,6 +45,39 @@ class ImageSource:
         future = Future()
         future.set_result(self.get_image(stripe_id, version_id))
         return future
+
+    @classmethod
+    def loop_image(cls, image, stripe_id, stripe_count):
+        """
+        Parameters
+        ----------
+        image : numpy.array
+            Image to be looped. Images from the odd loops are mirrored vertically. In addition images on loop joints
+            have added 25% of pixcels on the top to make the patching smooth.
+        stripe_id : int
+            Id of the stripe from which image comes from
+        stripe_count : int
+            Number of stripes in the data set
+
+        Returns
+        -------
+        image : numpy.array
+            Image flipped and prefixed if necessary
+        """
+        mirror = (stripe_id // stripe_count) % 2 == 1
+        prefix = stripe_id != 0 and stripe_id % stripe_count == 0
+
+        result = image
+        if mirror:
+            result = numpy.flip(result, axis=0)
+
+        if prefix:
+            prefix_image = numpy.flip(result[:(result.shape[0] // 3), ...], axis=0)
+            result = numpy.concatenate([prefix_image, result], axis=0)
+
+        return result
+
+
 
     @abstractmethod
     def get_image(self, stripe_id, version_id):

@@ -138,6 +138,8 @@ class PatchworkBuilder:
         image: np.array
             array created by combining two source images.
         """
+        if image_one.shape != image_two.shape:
+            raise AttributeError("shapes do not match: {} vs {}".format(image_one.shape, image_two.shape))
         height = image_one.shape[0]
         vector_one = numpy.array([1.0 - float(i + 1) / (height + 1) for i in range(height)])
         vector_two = numpy.array([float(i + 1) / (height + 1) for i in range(height)])

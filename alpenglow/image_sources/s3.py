@@ -1,5 +1,11 @@
 from concurrent.futures import Future
-from queue import Queue, Empty
+import sys
+is_py2 = sys.version[0] == '2'
+if is_py2:
+    from Queue import Queue, Empty
+else:
+    from queue import Queue, Empty
+
 from threading import Thread, Lock
 
 import boto3
@@ -26,9 +32,9 @@ class S3ImageSourceThread(Thread):
     def run(self):
         try:
             while True:
-                path, future = self.task_queue.get_nowait()
+                path, future, stripe_id, stripe_count = self.task_queue.get_nowait()
                 image_data = BytesIO(self.get_connection().get_object(Bucket=self._bucket, Key=path)["Body"].read())
-                future.set_result(self.array_mapping(tiff.TiffFile(image_data).asarray()))
+                future.set_result(ImageSource.loop_image(self.array_mapping(tiff.TiffFile(image_data).asarray()), stripe_id, stripe_count))
         except Empty:
             self.lock.acquire()
             del self.threads[self.thread_id]
@@ -75,7 +81,11 @@ class S3ImageSource(ImageSource):
         return self.get_image_future(stripe_id, version_id).result()
 
     def get_image_future(self, stripe_id, version_id):
-        external_stripe_id = self.stripe_ids[stripe_id]
+        stripe_image_id = stripe_id % len(self.stripe_ids)
+        if (stripe_id // len(self.stripe_ids)) % 2 == 1:
+            stripe_image_id = len(self.stripe_ids) - 1 - stripe_image_id
+
+        external_stripe_id = self.stripe_ids[stripe_image_id]
         external_version_id = self.version_ids[version_id]
 
         if self.mapping is not None:
@@ -85,7 +95,7 @@ class S3ImageSource(ImageSource):
 
         future = Future()
 
-        task = (path, future)
+        task = (path, future, stripe_id, len(self.stripe_ids))
         self._task_queue.put(task)
         self._lock.acquire()
         if len(self._threads) < self._max_workers:

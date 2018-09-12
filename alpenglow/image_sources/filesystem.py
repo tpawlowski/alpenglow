@@ -13,8 +13,12 @@ class FilesystemImageSource(ImageSource):
         self._channel_count = channel_count
 
     def get_image(self, stripe_id, version_id):
-        path = self.path_format.format(stripe_id=self.stripe_ids[stripe_id], version_id=self.version_ids[version_id])
-        return tiff.TiffFile(path).asarray().swapaxes(0, 1)
+        stripe_image_id = stripe_id % len(self.stripe_ids)
+        if (stripe_id // len(self.stripe_ids)) % 2 == 1:
+            stripe_image_id = len(self.stripe_ids) - 1 - stripe_image_id
+
+        path = self.path_format.format(stripe_id=self.stripe_ids[stripe_image_id], version_id=self.version_ids[version_id])
+        return ImageSource.loop_image(tiff.TiffFile(path).asarray().swapaxes(0, 1), stripe_id, len(self.stripe_ids))
 
     def stripe_count(self):
         return len(self.stripe_ids)
