@@ -90,7 +90,6 @@ def get_image_source(config):
     elif config.image_source == 's3':
         return S3ImageSource(*config.image_source_config['args'], **config.image_source_config['kwargs'])
     else:
-
         return DemoImageSource(*config.image_source_config['args'], **config.image_source_config['kwargs'])
 
 
