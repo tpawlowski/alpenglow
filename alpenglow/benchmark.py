@@ -188,23 +188,33 @@ class PositionState:
         self.previous_overlay = 0
 
     def apply(self, stripe, shift, shape):
-        positions = []
         if self.width is None:
             self.width = 2 * self.margin + shape[1]
 
         if stripe >= self.current:
             self.waiting[stripe] = (shift, shape)
 
-        while self.current in self.waiting:
-            (shift, shape) = self.waiting[self.current]
-            del self.waiting[self.current]
-            positions.append([self.current, self.x, self.y, self.width, self.previous_overlay, shift[0], shift[1]])
-            self.x += shift[1]
-            self.y += shape[0] - shift[0]
-            self.previous_overlay = shift[0]
-            self.current += 1
+        return self
 
-        return positions
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.next()
+
+    def next(self):
+        if self.current not in self.waiting:
+            raise StopIteration
+
+        (shift, shape) = self.waiting[self.current]
+        del self.waiting[self.current]
+        result = [self.current, self.x, self.y, self.width, self.previous_overlay, shift[0], shift[1]]
+        self.x += shift[1]
+        self.y += shape[0] - shift[0]
+        self.previous_overlay = shift[0]
+        self.current += 1
+
+        return result
 
 
 class DelayDownloadState:
@@ -392,3 +402,8 @@ class WindowState:
 
 def segmentation(image):
     return image > threshold_otsu(image)
+
+
+def validate(mask):
+    mask.flags.writeable = False
+    return hash(mask.data)

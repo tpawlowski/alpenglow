@@ -14,14 +14,15 @@ from output_image_bolt import OutputImageBolt
 from delay_image_download_bolt import DelayImageDownloadBolt
 from windowing_bolt import WindowingBolt
 from segmentation_bolt import SegmentationBolt
+from validation_bolt import ValidationBolt
 
 if __name__ == '__main__':
     builder = TopologyBuilder("Alpenglow_Topology")
 
     config = {
         "benchmark_config": dict(verbosity=1,
-                                 replication_factor=3,
-                                 sample_size=8,
+                                 replication_factor=7,
+                                 sample_size=25,
                                  window_length=256,
                                  window_step=128,
                                  image_source="filesystem",
@@ -86,6 +87,9 @@ if __name__ == '__main__':
 
     segmentation_bolt = builder.add_bolt("segmentation_bolt", SegmentationBolt, par=3, config=config,
                                          inputs={windowing_bolt: Grouping.SHUFFLE})
+
+    validation_bolt = builder.add_bolt("validation_bolt", ValidationBolt, par=1, config=config,
+                                       inputs={segmentation_bolt: Grouping.ALL})
 
     # Finalize the topology graph
     builder.build_and_submit()
