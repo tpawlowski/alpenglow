@@ -7,8 +7,9 @@ class DelayImageDownloadBolt(Bolt):
     outputs = ['stripe', 'version']
 
     def initialize(self, config, context):
-        self.log("Initializing  DelayImageDownload...")
         self.config = BenchmarkConfig.from_dict(config["benchmark_config"])
+        if self.config.verbosity > 0:
+            self.log("Initializing  DelayImageDownload...")
         self.state = DelayDownloadState(self.config)
 
     def process(self, tup):

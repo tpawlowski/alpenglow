@@ -7,8 +7,9 @@ class GetDemoImageBolt(Bolt):
     outputs = ['stripe', 'version', 'image']
 
     def initialize(self, config, context):
-        self.log("Initializing GetDemoImageBolt...")
         self.config = BenchmarkConfig.from_dict(config["benchmark_config"])
+        if self.config.verbosity > 0:
+            self.log("Initializing GetDemoImageBolt...")
         self.image_source = get_image_source(self.config)
 
     def process(self, tup):

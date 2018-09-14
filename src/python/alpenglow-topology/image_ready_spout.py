@@ -11,24 +11,30 @@ class ImageReadySpout(Spout):
     outputs = ['stripe', 'version']
 
     def initialize(self, config, context):
-        self.generator = get_image_order(BenchmarkConfig.from_dict(config["benchmark_config"]))
+        self.config = BenchmarkConfig.from_dict(config["benchmark_config"])
+        self.generator = get_image_order(self.config)
+        if self.config.verbosity > 0:
+            self.log("Initializing ImageReadySpout...")
         self.failed = []
 
     def next_tuple(self):
         if len(self.failed) > 0:
             tup_id = self.failed.pop()
-            self.log("re-emitting {}".format(tup_id))
+            if self.config.verbosity > 0:
+                self.log("re-emitting {}".format(tup_id))
             self.emit([tup_id[0], tup_id[1]], tup_id=tup_id)
         else:
             try:
                 tup_id = self.generator.next()
-                self.log("emit {}".format(tup_id))
+                if self.config.verbosity > 0:
+                    self.log("emit {}".format(tup_id))
                 self.emit([tup_id[0], tup_id[1]], tup_id=tup_id)
             except StopIteration:
                 pass
 
     def fail(self, tup_id):
-        self.log("received fail {}".format(tup_id))
+        if self.config.verbosity > 0:
+            self.log("received fail {}".format(tup_id))
         self.failed.append(tup_id)
 
 

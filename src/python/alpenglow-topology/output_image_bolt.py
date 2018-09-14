@@ -7,8 +7,9 @@ class OutputImageBolt(Bolt):
     outputs = ['version', 'image', 'y']
 
     def initialize(self, config, context):
-        self.log("Initializing AbsolutePositionsBolt...")
         self.config = BenchmarkConfig.from_dict(config["benchmark_config"])
+        if self.config.verbosity > 0:
+            self.log("Initializing AbsolutePositionsBolt...")
         self.state = MergeImageState(self.config)
 
     def process(self, tup):

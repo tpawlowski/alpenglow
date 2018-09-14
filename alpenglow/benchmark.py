@@ -1,6 +1,9 @@
 import numpy
+from skimage.filters import threshold_otsu
 
 from alpenglow.image_sources.demo import DemoImageSource
+from alpenglow.image_sources.filesystem import FilesystemImageSource
+from alpenglow.image_sources.s3 import S3ImageSource
 from alpenglow.matching_algorithms.fft import FftMatchingAlgorithm
 from alpenglow.patchwork_builders.default import PatchworkBuilder
 
@@ -10,40 +13,44 @@ class BenchmarkConfig:
     Configuration of how demo images should be generated (if they are generated).
     """
     def __init__(self,
-                 stripe_count=7,
-                 version_count=5,
-                 channel_count=1,
-                 stripe_shifts=(19, 38, 0),
-                 stripe_overlap=0.4,
                  sample_size=3,
                  margin=30,
                  verbosity=0,
                  window_length=512,
-                 window_step=256):
-        self.stripe_count = stripe_count
-        self.version_count = version_count
-        self.channel_count = channel_count
-        self.stripe_shifts = stripe_shifts
-        self.stripe_overlap = stripe_overlap
+                 window_step=256,
+                 replication_factor=1,
+                 image_source='demo',
+                 image_source_config=None):
         self.sample_size = sample_size
         self.margin = margin
         self.verbosity = verbosity
-        self.window_length=window_length
-        self.window_step=window_step
 
+        self.window_length = window_length
+        self.window_step = window_step
+
+        self.replication_factor = replication_factor
+
+        self.image_source = image_source
+        self.image_source_config = image_source_config
+        if image_source_config is None:
+            if image_source == 'demo':
+                self.image_source_config = {
+                    'args': [],
+                    'kwargs': dict(stripe_count=7, version_count=5, channel_count=1, vertical_shifts=(19, 38, 0), overlap=0.4)
+                }
+            else:
+                raise ValueError("image_source_config does not have a default value for image_source {}".format(image_source))
 
     def to_dict(self):
         return dict(
-            stripe_count=self.stripe_count,
-            version_count=self.version_count,
-            channel_count=self.channel_count,
-            stripe_shifts=self.stripe_shifts,
-            stripe_overlap=self.stripe_overlap,
             sample_size=self.sample_size,
             margin=self.margin,
             verbosity=self.verbosity,
             window_length=self.window_length,
-            window_step=self.window_step
+            window_step=self.window_step,
+            replication_factor=self.replication_factor,
+            image_source=self.image_source,
+            image_source_config=self.image_source_config
         )
 
     @classmethod
@@ -62,7 +69,8 @@ def get_image_order(config):
     Iterator for pairs (stripe, version) occuring in order they usually appear in the stream
 
     """
-    return ((stripe, version) for stripe in range(config.stripe_count) for version in range(config.version_count))
+    image_source = get_image_source(config)
+    return ((stripe, version) for stripe in range(image_source.stripe_count() * config.replication_factor) for version in range(image_source.version_count()))
 
 
 def get_image_source(config):
@@ -77,25 +85,26 @@ def get_image_source(config):
     ImageSource object capable of generating image based on stripe and version.
 
     """
-    return DemoImageSource(
-        stripe_count=config.stripe_count,
-        version_count=config.version_count,
-        channel_count=config.channel_count,
-        vertical_shifts=config.stripe_shifts,
-        overlap=config.stripe_overlap
-    )
+    if config.image_source == 'filesystem':
+        return FilesystemImageSource(*config.image_source_config['args'], **config.image_source_config['kwargs'])
+    elif config.image_source == 's3':
+        return S3ImageSource(*config.image_source_config['args'], **config.image_source_config['kwargs'])
+    else:
+
+        return DemoImageSource(*config.image_source_config['args'], **config.image_source_config['kwargs'])
 
 
 def is_in_sample(config, version):
+    version_count = get_image_source(config).version_count()
     if config.sample_size == 1:  # accept middle one
-        return version == config.version_count // 2
+        return version == version_count // 2
     elif config.sample_size == 2:  # accept edges
-        return version == 0 or version == config.version_count - 1
+        return version == 0 or version == version_count - 1
     else:  # accept evenly distributed versions
         return (version == 0) or \
-               (((version + 1) * (config.sample_size - 1)) % config.version_count) == 0 or \
-               (version + 1) * (config.sample_size - 1) // config.version_count > version * (
-               config.sample_size - 1) // config.version_count
+               (((version + 1) * (config.sample_size - 1)) % version_count) == 0 or \
+               (version + 1) * (config.sample_size - 1) // version_count > version * (
+               config.sample_size - 1) // version_count
 
 
 class CorrelationState:
@@ -318,44 +327,68 @@ class WindowState:
         self.window_offset = 0  # offset of next printed
         self.current_fill = 0  # up to where we have all versions already available
         self.first_offset = 0  # first offset containing still valid data.
+        self.version_count = get_image_source(config).version_count()
+        self.window = None  # window object - note: it is reused.
 
     def apply(self, version, image, y):
-        results = []
+        """
+        Returns
+        -------
+        iterator over the available windows.
+        """
         if y not in self.data:
             self.data[y] = {}
 
         self.data[y][version] = image
 
-        while len(self.data.get(self.current_fill, {})) == self.config.version_count:
+        while len(self.data.get(self.current_fill, {})) == self.version_count:
             self.current_fill += self.data[self.current_fill][0].shape[0]
 
-        while self.window_offset + self.config.window_length <= self.current_fill:
-            sample_image = self.data[self.first_offset][0]
-            window = numpy.empty((self.config.version_count, self.config.window_length, sample_image.shape[1]),
-                                 dtype=sample_image.dtype)
+        return self
 
-            window_fill = 0
-            data_offset = self.first_offset
+    def __iter__(self):
+        return self
 
-            while window_fill < self.config.window_length:
-                layer_height = self.data[data_offset][0].shape[0]
-                pixels_from = max(data_offset, self.window_offset) - data_offset
-                pixels_to = min(self.window_offset + self.config.window_length - data_offset, layer_height)
+    def __next__(self):
+        return self.next()
 
-                for version, image in self.data[data_offset].items():
-                    window[version, window_fill:(window_fill + pixels_to - pixels_from), :] = image[pixels_from:pixels_to, :]
+    def next(self):
+        if self.window_offset + self.config.window_length > self.current_fill:
+            raise StopIteration
 
-                window_fill += pixels_to - pixels_from
-                data_offset += layer_height
+        sample_image = self.data[self.first_offset][0]
 
-            results.append([self.window_offset, self.window_offset + self.config.window_length, window])
+        if self.window is None:
+            self.window = numpy.empty((self.version_count, self.config.window_length, sample_image.shape[1]),
+                                      dtype=sample_image.dtype)
+        window = self.window
 
-            self.window_offset += self.config.window_step
+        window_fill = 0
+        data_offset = self.first_offset
 
-            # clean used data
-            while self.first_offset < self.window_offset and self.first_offset + self.data[self.first_offset][0].shape[0] <= self.window_offset:
-                layer_height = self.data[self.first_offset][0].shape[0]
-                del self.data[self.first_offset]
-                self.first_offset += layer_height
+        while window_fill < self.config.window_length:
+            layer_height = self.data[data_offset][0].shape[0]
+            pixels_from = max(data_offset, self.window_offset) - data_offset
+            pixels_to = min(self.window_offset + self.config.window_length - data_offset, layer_height)
 
-        return results
+            for version, image in self.data[data_offset].items():
+                window[version, window_fill:(window_fill + pixels_to - pixels_from), :] = image[pixels_from:pixels_to, :]
+
+            window_fill += pixels_to - pixels_from
+            data_offset += layer_height
+
+        returned_offset = self.window_offset
+
+        self.window_offset += self.config.window_step
+
+        # clean used data
+        while self.first_offset < self.window_offset and self.first_offset + self.data[self.first_offset][0].shape[0] <= self.window_offset:
+            layer_height = self.data[self.first_offset][0].shape[0]
+            del self.data[self.first_offset]
+            self.first_offset += layer_height
+
+        return [returned_offset, returned_offset + self.config.window_length, window]
+
+
+def segmentation(image):
+    return image > threshold_otsu(image)

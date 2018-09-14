@@ -13,13 +13,23 @@ from absolute_positions_bolt import AbsolutePositionsBolt
 from output_image_bolt import OutputImageBolt
 from delay_image_download_bolt import DelayImageDownloadBolt
 from windowing_bolt import WindowingBolt
-from save_image_to_file_bolt import SaveImageToFileBolt
+from segmentation_bolt import SegmentationBolt
 
 if __name__ == '__main__':
     builder = TopologyBuilder("Alpenglow_Topology")
 
     config = {
-        "benchmark_config": dict(verbosity=1, version_count=5, stripe_count=18, window_length=64, window_step=32)
+        "benchmark_config": dict(verbosity=1,
+                                 replication_factor=3,
+                                 sample_size=8,
+                                 window_length=256,
+                                 window_step=128,
+                                 image_source="filesystem",
+                                 image_source_config=dict(
+                                     args=['/Users/tpawlowski/workspace/dokstud/alpenglow/data/{stripe_id:06d}/{stripe_id:06d}_{version_id:05d}.tif', [0, 1, 2], list(range(1, 1801, 60))],
+                                     kwargs={}
+                                 )
+                                 )
     }
 
     # Emits information that images are ready for download
@@ -74,8 +84,8 @@ if __name__ == '__main__':
                                       config=config,
                                       inputs={output_images_bolt: Grouping.ALL})
 
-    output_to_tmp_dir = builder.add_bolt("output_to_tmp_dir", SaveImageToFileBolt, par=1,
-                                         inputs={windowing_bolt: Grouping.ALL})
+    segmentation_bolt = builder.add_bolt("segmentation_bolt", SegmentationBolt, par=3, config=config,
+                                         inputs={windowing_bolt: Grouping.SHUFFLE})
 
     # Finalize the topology graph
     builder.build_and_submit()

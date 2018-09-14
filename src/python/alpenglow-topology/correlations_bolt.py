@@ -12,7 +12,7 @@ class CorrelationsBolt(Bolt):
 
     def process(self, tup):
         (stripe, version, image) = tup.values
-        if self.config.verbosity > 0:
+        if self.config.verbosity > 1:
             self.log("received {}".format(tup.values))
 
         for correlation in self.state.apply(version, stripe, image):

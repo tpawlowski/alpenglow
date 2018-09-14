@@ -1,6 +1,6 @@
 from heronpy.api.bolt.bolt import Bolt
 
-from alpenglow.benchmark import BenchmarkConfig, PositionState
+from alpenglow.benchmark import BenchmarkConfig, PositionState, get_image_source
 
 
 class AbsolutePositionsBolt(Bolt):
@@ -10,6 +10,7 @@ class AbsolutePositionsBolt(Bolt):
         self.log("Initializing AbsolutePositionsBolt...")
         self.config = BenchmarkConfig.from_dict(config["benchmark_config"])
         self.state = PositionState(self.config)
+        self.version_count = get_image_source(self.config).version_count()
 
     def process(self, tup):
         if self.config.verbosity > 0:
@@ -17,6 +18,8 @@ class AbsolutePositionsBolt(Bolt):
 
         (stripe, shift, shape) = tup.values
         for position in self.state.apply(stripe, shift, shape):
-            self.log("broadcasting position: {}".format(position))
-            for version in range(self.config.version_count):
+            if self.config.verbosity > 0:
+                self.log("broadcasting position: {}".format(position))
+
+            for version in range(self.version_count):
                 self.emit([version] + list(position))
