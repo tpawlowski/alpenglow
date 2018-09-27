@@ -4,6 +4,7 @@ from skimage.filters import threshold_otsu
 from alpenglow.image_sources.demo import DemoImageSource
 from alpenglow.image_sources.filesystem import FilesystemImageSource
 from alpenglow.image_sources.s3 import S3ImageSource
+from alpenglow.image_sources.threaded_image_source import ThreadedImageSource
 from alpenglow.matching_algorithms.fft import FftMatchingAlgorithm
 from alpenglow.patchwork_builders.default import PatchworkBuilder
 
@@ -20,7 +21,8 @@ class BenchmarkConfig:
                  window_step=256,
                  replication_factor=1,
                  image_source='demo',
-                 image_source_config=None):
+                 image_source_config=None,
+                 image_source_threads=4):
         self.sample_size = sample_size
         self.margin = margin
         self.verbosity = verbosity
@@ -31,6 +33,7 @@ class BenchmarkConfig:
         self.replication_factor = replication_factor
 
         self.image_source = image_source
+        self.image_source_threads = image_source_threads
         self.image_source_config = image_source_config
         if image_source_config is None:
             if image_source == 'demo':
@@ -50,6 +53,7 @@ class BenchmarkConfig:
             window_step=self.window_step,
             replication_factor=self.replication_factor,
             image_source=self.image_source,
+            image_source_threads=self.image_source_threads,
             image_source_config=self.image_source_config
         )
 
@@ -86,11 +90,11 @@ def get_image_source(config):
 
     """
     if config.image_source == 'filesystem':
-        return FilesystemImageSource(*config.image_source_config['args'], **config.image_source_config['kwargs'])
+        return ThreadedImageSource([FilesystemImageSource(*config.image_source_config['args'], **config.image_source_config['kwargs']) for _ in range(config.image_source_threads)])
     elif config.image_source == 's3':
         return S3ImageSource(*config.image_source_config['args'], **config.image_source_config['kwargs'])
     else:
-        return DemoImageSource(*config.image_source_config['args'], **config.image_source_config['kwargs'])
+        return ThreadedImageSource([DemoImageSource(*config.image_source_config['args'], **config.image_source_config['kwargs']) for _ in range(config.image_source_threads)])
 
 
 def is_in_sample(config, version):

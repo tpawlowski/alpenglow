@@ -64,7 +64,6 @@ class S3ImageSource(ImageSource):
             self._array_mapping = lambda a: a.swapaxes(0, 1)
 
         self._bucket = bucket
-        self.connection = boto3.client('s3', endpoint_url=endpoint, aws_access_key_id=key, aws_secret_access_key=secret)
 
         self._thread_data = {
             'bucket': bucket,
