@@ -1,0 +1,51 @@
+- name: Create data directory
+  file:
+    dest: /home/ubuntu/{{item}}
+    owner: ubuntu
+    group: ubuntu
+    mode: 0775
+    state: directory
+  register: data_directory
+  with_items:
+    - 'data'
+    - 'data/000000'
+    - 'data/000001'
+    - 'data/000002'
+
+- name: Download data in parallel
+  command: s3cmd get --recursive s3://alpenglowoptics/phantom_2_7_2017/{{item}}/ /home/ubuntu/data/{{item}}
+  with_items:
+    - '000000'
+    - '000001'
+    - '000002'
+  register: download_data
+  when: data_directory.changed
+  become: yes
+  become_user: ubuntu
+  async: 7200
+  poll: 0
+
+- name: Wait for instance creation to complete
+  async_status: jid={{ item.ansible_job_id }}
+  register: ec2_jobs
+  until: ec2_jobs.finished
+  retries: 300
+  with_items: "{{ download_data.results }}"
+  when: data_directory.changed
+  become: yes
+  become_user: ubuntu
+
+- name: Fix ordering
+  shell: |
+    for x in `seq 1 900`; do
+      a=000001_$(printf %05d $x).tif
+      b=000001_$(printf %05d $((1801 - x))).tif
+      mv $a tmp
+      mv $b $a
+      mv tmp $b
+    done
+  when: download_data.changed
+  become: yes
+  become_user: ubuntu
+  args:
+    chdir: /home/ubuntu/data/000001

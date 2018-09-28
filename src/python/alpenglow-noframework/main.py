@@ -116,7 +116,7 @@ if __name__ == '__main__':
     log(0, 'start')
     config = BenchmarkConfig.from_dict(dict(verbosity=1,
                                  replication_factor=7,
-                                 sample_size=25,
+                                 sample_size=60,
                                  window_length=256,
                                  window_step=128,
                                  image_source="filesystem",

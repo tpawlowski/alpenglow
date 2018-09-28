@@ -1,0 +1,33 @@
+- name: Installing dependencies
+  apt: name={{item}} state=installed
+  with_items:
+    - git
+    - python-virtualenv
+    - python-dev
+    - build-essential
+    - s3cmd
+
+- name: Fetch alpenglow repository
+  git:
+    repo: https://github.com/tpawlowski/alpenglow.git
+    dest: /home/ubuntu/alpenglow
+    version: master
+
+- name: Installing venv
+  command: virtualenv /home/ubuntu/venv creates="/home/ubuntu/venv"
+
+- name: Install requirements
+  pip:
+    requirements=/home/ubuntu/alpenglow/requirements.txt
+    virtualenv=/home/ubuntu/venv
+
+- name: Copy aws credentials
+  copy:
+    dest: "/home/ubuntu/.s3cfg"
+    owner: ubuntu
+    group: ubuntu
+    mode: 0600
+    content: |
+      [default]
+      access_key = {{ AWSAccessKeyId }}
+      secret_key = {{ AWSSecretKey }}
