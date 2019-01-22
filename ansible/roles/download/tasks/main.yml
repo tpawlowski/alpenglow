@@ -13,7 +13,7 @@
     - 'data/000002'
 
 - name: Download data in parallel
-  command: s3cmd get --recursive s3://alpenglowoptics/phantom_2_7_2017/{{item}}/ /home/ubuntu/data/{{item}}
+  command: s3cmd get --recursive s3://alpenglowoptics/phantom_2_7_2017/{{item}}/ /home/ubuntu/data/{{item}}  # us-west-2 (oregon)
   with_items:
     - '000000'
     - '000001'

@@ -1,0 +1,24 @@
+- name: Add an apt key by id from a keyserver
+  apt_key:
+    keyserver: keyserver.ubuntu.com
+    id: E56151BF
+    state: present
+
+- name: Fill sources list
+  become: yes
+  shell: echo "deb http://repos.mesosphere.io/$(lsb_release -is | tr '[:upper:]' '[:lower:]') $(lsb_release -cs) main" > /etc/apt/sources.list.d/mesosphere.list
+  args:
+    creates: /etc/apt/sources.list.d/mesosphere.list
+
+- name: Install Mesos
+  apt:
+    name: mesos
+    update_cache: yes
+
+- name: Set ZK url
+  template:
+    src: zk.j2
+    dest: /etc/mesos/zk
+    owner: root
+    group: root
+    mode: 0664

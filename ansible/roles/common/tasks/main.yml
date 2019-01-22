@@ -1,33 +1,146 @@
 - name: Installing dependencies
   apt: name={{item}} state=installed
   with_items:
-    - git
     - python-virtualenv
     - python-dev
     - build-essential
-    - s3cmd
+    - htop
+    - zip
+    - libunwind-setjmp0-dev
+    - zlib1g-dev
+    - unzip
 
-- name: Fetch alpenglow repository
-  git:
-    repo: https://github.com/tpawlowski/alpenglow.git
-    dest: /home/ubuntu/alpenglow
-    version: master
+- name: Fill etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    insertafter: '^127\.0\.0\.1'
+    regexp: " islave{{ groups['slaves'].index(item) + 1 }}$"
+    line: "{{'127.0.0.1' if item == inventory_hostname else item}} islave{{ groups['slaves'].index(item) + 1 }}"
+  with_items: "{{ groups['slaves'] }}"
 
-- name: Installing venv
-  command: virtualenv /home/ubuntu/venv creates="/home/ubuntu/venv"
+- name: Fill etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    insertafter: '^127\.0\.0\.1'
+    regexp: " slave{{ groups['slaves'].index(item) + 1 }}$"
+    line: "{{item}} slave{{ groups['slaves'].index(item) + 1 }}"
+  with_items: "{{ groups['slaves'] }}"
 
-- name: Install requirements
-  pip:
-    requirements=/home/ubuntu/alpenglow/requirements.txt
-    virtualenv=/home/ubuntu/venv
+- name: Fill etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    insertafter: '^127\.0\.0\.1'
+    regexp: " imaster{{ groups['masters'].index(item) + 1 }}$"
+    line: "{{'127.0.0.1' if item == inventory_hostname else item}} imaster{{ groups['masters'].index(item) + 1 }}"
+  with_items: "{{ groups['masters'] }}"
 
-- name: Copy aws credentials
+- name: Fill etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    insertafter: '^127\.0\.0\.1'
+    regexp: " master{{ groups['masters'].index(item) + 1 }}$"
+    line: "{{item}} master{{ groups['masters'].index(item) + 1 }}"
+  with_items: "{{ groups['masters'] }}"
+
+- name: Installing dependencies
+  apt: name={{item}} state=installed
+  with_items:
+    - openjdk-8-jdk-headless
+
+- name: Insert a line at the end of a file.
+  lineinfile:
+    path: "/home/{{ ansible_user }}/.bashrc"
+    line: "{{item}}"
+  with_items:
+    - "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
+    - "export PATH=$PATH:$JAVA_HOME/bin"
+
+- name: Update alternatives
+  alternatives:
+    name: java
+    path: /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+
+- name: Add .ssh directory
+  file:
+    path: "/home/{{ ansible_user }}/.ssh"
+    state: directory
+    mode: 0700
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: copy id_rsa
   copy:
-    dest: "/home/ubuntu/.s3cfg"
-    owner: ubuntu
-    group: ubuntu
+    src: id_rsa
+    dest:  "/home/{{ ansible_user }}/.ssh/id_rsa"
     mode: 0600
-    content: |
-      [default]
-      access_key = {{ AWSAccessKeyId }}
-      secret_key = {{ AWSSecretKey }}
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: copy id_rsa.pub
+  copy:
+    src: id_rsa.pub
+    dest:  "/home/{{ ansible_user }}/.ssh/id_rsa.pub"
+    mode: 0644
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: copy ssh config file
+  copy:
+    src: config
+    dest:  "/home/{{ ansible_user }}/.ssh/config"
+    mode: 0755
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Set authorized key taken from file
+  authorized_key:
+    user: "{{ ansible_user }}"
+    state: present
+    key: "{{ lookup('file', 'id_rsa.pub') }}"
+#
+#- name: Remove old hadoop directory
+#  file:
+#    state: absent
+#    path: "/home/{{ ansible_user }}/hadoop-2.9.2"
+
+#- name: Unarchive hadoop
+#  unarchive:
+#    src: https://www-us.apache.org/dist/hadoop/common/hadoop-2.9.2/hadoop-2.9.2.tar.gz
+#    dest: "/home/{{ ansible_user }}/"
+#    remote_src: yes
+#    creates: "/home/{{ ansible_user }}/hadoop-2.9.2"
+#    group: "{{ ansible_user }}"
+#    owner: "{{ ansible_user }}"
+#
+#- name: Insert a line at the end of a file.
+#  lineinfile:
+#    path: "/home/{{ ansible_user }}/.bashrc"
+#    line: "{{item}}"
+#  with_items:
+#    - "export PATH=/home/{{ ansible_user }}/hadoop-2.9.2/bin:/home/{{ ansible_user }}/hadoop-2.9.2/sbin:$PATH"
+#
+#- name: Update hadoop env
+#  lineinfile:
+#    path: "/home/{{ ansible_user }}/hadoop-2.9.2/etc/hadoop/hadoop-env.sh"
+#    line: "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
+#    regexp: '^export JAVA_HOME=.*'
+#
+#- name: Upload core-site.yml
+#  template:
+#    src: core-site.xml.j2
+#    dest: "/home/{{ ansible_user }}/hadoop-2.9.2/etc/hadoop/core-site.xml"
+#
+#- name: Upload hdfs-site.yml
+#  template:
+#    src: hdfs-site.xml.j2
+#    dest: "/home/{{ ansible_user }}/hadoop-2.9.2/etc/hadoop/hdfs-site.xml"
+#
+#- name: Remove old data
+#  file:
+#    state: absent
+#    path: "/home/{{ ansible_user }}/hadoop-2.9.2/dfs"
+#
+#- name: Upload slaves
+#  template:
+#    src: slaves.j2
+#    dest: "/home/{{ ansible_user }}/hadoop-2.9.2/etc/hadoop/slaves"

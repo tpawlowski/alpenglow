@@ -11,10 +11,14 @@ alpenglow.egg-info/
 venv
 notebooks/.ipynb_checkpoints/
 data/
+dask-worker-space/
+results/
 .pants.d
 .pids
 .pants.workdir.file_lock
 .cache
-venv_heron
+venv_*
 heron-install-*.sh
 ansible/hosts/*
+ansible/*.retry
+ansible/roles/common/files/id_rsa*

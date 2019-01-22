@@ -1,0 +1,83 @@
+- name: Download heron installation file
+  get_url:
+    url: "https://github.com/apache/incubator-heron/releases/download/{{ heron_version }}/heron-install-{{ heron_version }}-ubuntu.sh"
+    dest: "/tmp/heron-install-{{ heron_version }}-ubuntu.sh"
+    group: "{{ansible_user}}"
+    owner: "{{ansible_user}}"
+    mode: 0755
+
+- name: remove old heron
+  file:
+    path: "{{item}}"
+    state: absent
+  with_items:
+    - "/home/{{ansible_user}}/bin"
+    - "/home/{{ansible_user}}/.heron"
+
+- name: Install heron
+  shell: "/tmp/heron-install-{{ heron_version }}-ubuntu.sh --user"
+  become: yes
+  become_user: "{{ansible_user}}"
+
+- name: Insert a line at the end of a file.
+  lineinfile:
+    path: "/home/{{ ansible_user }}/.bashrc"
+    line: "{{item}}"
+  with_items:
+    - "export PATH=$PATH:/home/{{ ansible_user }}/bin"
+
+#- name: Upload heron core to hdfs
+#  shell: /home/ubuntu/hadoop-2.9.2/bin/hdfs dfs -mkdir -p /heron/dist
+#  become: yes
+#  become_user: "{{ansible_user}}"
+#
+#- name: Upload heron core to hdfs
+#  shell: /home/ubuntu/hadoop-2.9.2/bin/hdfs dfs -put ~/.heron/dist/heron-core.tar.gz /heron/dist
+#  become: yes
+#  become_user: "{{ansible_user}}"
+#
+#- name: Patch conf/aurora/scheduler.yaml
+#  lineinfile:
+#    path: "/home/{{ ansible_user }}/.heron/conf/aurora/scheduler.yaml"
+#    regexp: '^heron.package.core.uri:'
+#    line: "heron.package.core.uri: /heron/dist/heron-core.tar.gz"
+#
+#- name: Patch conf/aurora/scheduler.yaml
+#  lineinfile:
+#    path: "/home/{{ ansible_user }}/.heron/conf/aurora/scheduler.yaml"
+#    regexp: '^heron.package.topology.uri:'
+#    line: "heron.package.topology.uri: /home/{{ ansible_user }}/.herondata/repository/topologies/${CLUSTER}/${ROLE}/${TOPOLOGY}"
+#
+#- name: Patch conf/aurora/scheduler.yaml
+#  lineinfile:
+#    path: "/home/{{ ansible_user }}/.heron/conf/aurora/scheduler.yaml"
+#    regexp: '^heron.directory.sandbox.java.home:'
+#    line: "heron.directory.sandbox.java.home: /usr/lib/jvm/java-8-openjdk-amd64"
+#
+#- name: copy statemgr.yaml
+#  copy:
+#    src: "{{item}}"
+#    dest:  "/home/{{ ansible_user }}/.heron/conf/aurora/{{item}}"
+#    mode: 0755
+#    owner: "{{ ansible_user }}"
+#    group: "{{ ansible_user }}"
+#  with_items:
+#    - "statemgr.yaml"
+#    - "uploader.yaml"
+#    - "heron.aurora"
+#
+#- name: copy heron_tracker.yaml
+#  copy:
+#    src: "heron_tracker.yaml"
+#    dest:  "/home/{{ ansible_user }}/.heron/conf/heron_tracker.yaml"
+#    mode: 0755
+#    owner: "{{ ansible_user }}"
+#    group: "{{ ansible_user }}"
+#
+#- name: ansible clusters.json
+#  copy:
+#    src: "clusters.json"
+#    dest:  "/etc/aurora/clusters.json"
+#    mode: 0644
+#    owner: "root"
+#    group: "root"

@@ -4,4 +4,5 @@ six==1.11.0
 numpy==1.14.4
 scikit-image==0.14.0
 boto3==1.7.33
-alpenglow==0.6.8.dev0
+matplotlib==2.2.3
+alpenglow==0.7.3.dev0

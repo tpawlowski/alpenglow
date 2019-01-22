@@ -1,0 +1,80 @@
+- name: Download aurora deb
+  get_url:
+    url: https://apache.bintray.com/aurora/ubuntu-{{ ansible_distribution_release }}/aurora-scheduler_{{ aurora_version }}_amd64.deb
+    dest: /tmp/aurora-scheduler_{{ aurora_version }}_amd64.deb
+
+- name: Install aurora
+  apt:
+    deb: /tmp/aurora-scheduler_{{ aurora_version }}_amd64.deb
+
+- name: check working dir
+  stat:
+    path: /var/lib/aurora/scheduler/db
+  register: working_dir
+
+- name: update zk endpoints
+  lineinfile:
+    path: /etc/default/aurora-scheduler
+    line: "ZK_ENDPOINTS=\"{% for host in groups['masters'] %}master{{ loop.index }}:2181{{ ',' if not loop.last else '' }}{% endfor %}\""
+    regexp: '^ZK_ENDPOINTS='
+
+- name: update mesos master
+  lineinfile:
+    path: /etc/default/aurora-scheduler
+    line: 'MESOS_MASTER="zk://${ZK_ENDPOINTS}/mesos/master"'
+    regexp: '^MESOS_MASTER='
+
+- name: update THERMOS_EXECUTOR_FLAGS
+  lineinfile:
+    path: /etc/default/aurora-scheduler
+    line: "THERMOS_EXECUTOR_FLAGS=\"--announcer-ensemble {% for host in groups['masters'] %}master{{ loop.index }}:2181{{ ',' if not loop.last else '' }}{% endfor %}\""
+    regexp: '^THERMOS_EXECUTOR_FLAGS='
+
+- name: update CLUSTER_NAME
+  lineinfile:
+    path: /etc/default/aurora-scheduler
+    line: "CLUSTER_NAME=\"alpenglow\""
+    regexp: '^CLUSTER_NAME='
+
+- name: update libprocess ip
+  lineinfile:
+    path: /etc/default/aurora-scheduler
+    line: ""
+    regexp: '^LIBPROCESS_IP='
+
+- name: update extra flags
+  lineinfile:
+    path: /etc/default/aurora-scheduler
+    line: "EXTRA_SCHEDULER_ARGS=\"-hostname=imaster{{ groups['masters'].index(inventory_hostname) + 1 }}\""
+    regexp: '^EXTRA_SCHEDULER_ARGS='
+
+- name: Stop aurora
+  systemd:
+    name: aurora-scheduler
+    state: stopped
+  become: yes
+#  when: working_dir.stat.exists == false
+
+- name: Create working dir
+  file:
+    path: /var/lib/aurora/scheduler/db
+    state: directory
+    owner: aurora
+    group: aurora
+    mode: 0775
+    recurse: yes
+  become: yes
+  become_user: aurora
+#  when: working_dir.stat.exists == false
+
+- name: Initialize mesos log
+  shell: mesos-log initialize --path=/var/lib/aurora/scheduler/db
+  become: yes
+  become_user: aurora
+#  when: working_dir.stat.exists == false
+
+- name: Start aurora
+  systemd:
+    name: aurora-scheduler
+    state: restarted
+  become: yes

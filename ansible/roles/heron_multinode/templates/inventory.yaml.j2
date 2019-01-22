@@ -1,0 +1,7 @@
+cluster:
+{% for host in groups['masters'] %}- imaster{{ loop.index }}
+{% endfor %}{% for host in groups['slaves'] %}- islave{{ loop.index }}
+{% endfor %}
+zookeepers:
+{% for host in groups['masters'] %}- imaster{{ loop.index }}
+{% endfor %}

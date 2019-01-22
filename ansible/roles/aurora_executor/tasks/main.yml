@@ -1,0 +1,19 @@
+- name: Installing dependencies
+  apt: name={{item}} state=installed
+  with_items:
+    - libcurl4-nss-dev
+
+- name: Download aurora deb
+  get_url:
+    url: https://apache.bintray.com/aurora/ubuntu-{{ ansible_distribution_release }}/aurora-executor_{{ aurora_version }}_amd64.deb
+    dest: /tmp/aurora-executor_{{ aurora_version }}_amd64.deb
+
+- name: Install aurora
+  apt:
+    deb: /tmp/aurora-executor_{{ aurora_version }}_amd64.deb
+
+- name: restart executor
+  systemd:
+    name: thermos
+    state: restarted
+  become: yes

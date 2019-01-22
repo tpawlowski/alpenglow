@@ -1,0 +1,13 @@
+- name: Fill mesos master settings
+  lineinfile:
+    path: /etc/default/mesos-master
+    line: "{{item}}"
+  with_items:
+    - "args+=( --advertise_ip={{ inventory_hostname }} )"
+    - "args+=( --no-hostname_lookup )"
+    - "args+=( --hostname=master{{ groups['masters'].index(inventory_hostname) + 1 }} )"
+
+- name: Start mesos master
+  systemd:
+    name: mesos-master
+    state: restarted

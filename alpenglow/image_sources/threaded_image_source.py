@@ -27,6 +27,7 @@ class ImageSourceThread(Thread):
 class ThreadedImageSource(ImageSource):
     def __init__(self, sources):
         self.sources = sources
+        self.sample_source = sources[0]
         self._task_queue = []
         self._lock = Lock()
         self._threads = {}
@@ -47,11 +48,11 @@ class ThreadedImageSource(ImageSource):
         return self.get_image_future(stripe_id, version_id).result()
 
     def stripe_count(self):
-        return self.sources[0].stripe_count()
+        return self.sample_source.stripe_count()
 
     def version_count(self):
-        return self.sources[0].version_count()
+        return self.sample_source.version_count()
 
     def channel_count(self):
-        return self.sources[0].channel_count()
+        return self.sample_source.channel_count()
 

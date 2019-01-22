@@ -1,0 +1,63 @@
+- systemd:
+    name: zookeeper
+    state: stopped
+  ignore_errors: yes
+
+#- name: delete old dir
+#  file:
+#    state: absent
+#    path: /opt/zookeeper
+
+- name: Create zookeeper directory
+  file:
+    state: directory
+    path: /opt/zookeeper
+    owner: ubuntu
+    group: ubuntu
+  register: zookeeper_dir
+
+- name: Create zookeeper data directory
+  file:
+    state: directory
+    path: /var/zookeeper
+    owner: ubuntu
+    group: ubuntu
+
+- name: create myid file
+  template:
+    src: myid.j2
+    dest: /var/zookeeper/myid
+
+- name: Download zookeeper content
+  unarchive:
+    src: http://www.us.apache.org/dist/zookeeper/zookeeper-3.4.12/zookeeper-3.4.12.tar.gz
+    dest: /opt/zookeeper
+    extra_opts: [--strip-components=1]
+    remote_src: yes
+  when: zookeeper_dir.changed
+
+- name: Copy config
+  template:
+    src: zookeeper.conf.j2
+    dest: /opt/zookeeper/conf/zoo.cfg
+    owner: ubuntu
+    group: ubuntu
+    mode: 0664
+
+- name: set zookeeper javaopts
+  copy:
+    content: 'JVMFLAGS="$JVMFLAGS -Djava.net.preferIPv4Stack=true"'
+    dest: /opt/zookeeper/conf/java.env
+    owner: ubuntu
+    group: ubuntu
+
+- name: install zookeeper systemd unit file
+  template:
+    src: zookeeper.service.j2
+    dest: /etc/systemd/system/zookeeper.service
+
+- name: Start zookeeper
+  systemd:
+    name: zookeeper
+    state: started
+    daemon_reload: yes

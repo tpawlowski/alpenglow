@@ -1,0 +1,7 @@
+statemgrs:
+  -
+    type: "zookeeper"
+    name: "localzk"
+    hostport: "127.0.0.1:2181"
+    rootpath: "/heron"
+    tunnelhost: "127.0.0.1"

@@ -1,6 +1,27 @@
 # alpenglow
 LSMstitch software for stitching a 3D volume from individual tiff frames captured by our custom-built light-sheet microscope.
 
+# Obtaining data:
+
+Checking bucket location (to create machines in the same data center).
+```
+$ aws --profile alpenglow s3api get-bucket-location --bucket raw-alpenglow
+{
+    "LocationConstraint": "us-west-2"
+}
+```
+
+List files:
+```
+$ aws --profile alpenglow s3 ls raw-alpenglow/data/638/000000/ --human-readable --summarize
+(...)
+2018-09-28 23:46:57    1.0 MiB 000000_9998.tif
+2018-09-28 23:46:57    1.0 MiB 000000_9999.tif
+
+Total Objects: 52183
+   Total Size: 51.0 GiB
+```
+
 # Installation
 
 ## Python version
@@ -101,18 +122,3 @@ heron deactivate local Alpenglow_Topology
 heron kill local Alpenglow_Topology
 ```
 
-# Wallaroo
-
-## Installation
-
-Instructions are available at `https://docs.wallaroolabs.com/book/getting-started/run-a-wallaroo-application-docker.html`.
-
-```
-docker pull wallaroo-labs-docker-wallaroolabs.bintray.io/release/wallaroo:0.5.1
-```
-
-# Streamz
-
-```
-python src/python/alpenglow-streamz/main.py
-```

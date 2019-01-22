@@ -40,9 +40,6 @@ class AlpenglowRunner:
     def apply(self, image_id):
         stripe, version = image_id
 
-        if stripe > self.current_stripe + 1:
-            self.__wait_for_images()
-
         if is_in_sample(self.config, image_id[1]):
             if stripe not in self.sample_futures:
                 self.sample_futures[stripe] = {}
@@ -53,11 +50,24 @@ class AlpenglowRunner:
                 self.rest_futures[stripe] = {}
             self.rest_futures[stripe][self.image_source.get_image_future(stripe, version)] = version
 
-    def __wait_for_images(self):
-        self.__wait_for_samples(self.current_stripe)
-        self.__wait_for_samples(self.current_stripe + 1)
-        self.__wait_for_rest(self.current_stripe)
-        self.current_stripe += 1
+        while True:
+            if self.samples_to == self.current_stripe - 1 and self.__samples_available(self.current_stripe):
+                self.__wait_for_samples(self.current_stripe)
+
+            if self.samples_to == self.current_stripe and self.__samples_available(self.current_stripe + 1):
+                self.__wait_for_samples(self.current_stripe + 1)
+
+            if self.samples_to > self.current_stripe and self.__rest_available(self.current_stripe):
+                self.__wait_for_rest(self.current_stripe)
+                self.current_stripe += 1
+            else:
+                break
+
+    def __samples_available(self, stripe):
+        return stripe in self.sample_futures and len(self.sample_futures[stripe]) == self.config.sample_size
+
+    def __rest_available(self, stripe):
+        return stripe in self.rest_futures and len(self.rest_futures[stripe]) == self.image_source.version_count() - self.config.sample_size
 
     def __wait_for_samples(self, sample_stripe):
         log(2, "waiting for samples {}".format(sample_stripe))
@@ -91,9 +101,9 @@ class AlpenglowRunner:
         self.samples_to = sample_stripe
 
     def __wait_for_rest(self, stripe):
-        log(2, "waiting for rest {}".format(stripe))
         if self.rest_to >= stripe:
             return
+        log(2, "waiting for rest {}".format(stripe))
         future_images = self.rest_futures[stripe]
         del self.rest_futures[stripe]
         for future_image in concurrent.futures.as_completed(future_images):
