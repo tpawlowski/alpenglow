@@ -18,6 +18,7 @@ python_binary(
         '3rdparty/python:scikit-image',
         '3rdparty/python:boto3',
         '3rdparty/python:matplotlib',
+        '3rdparty/python:scipy',
         '3rdparty/python:alpenglow'
     ],
 )

@@ -1,4 +1,8 @@
 # Based on https://apache.github.io/incubator-heron/docs/operators/deployment/schedulers/standalone/
+#
+# run cluster with command:
+#   heron-admin standalone cluster start
+#
 
 - name: Upload inventory
   template:

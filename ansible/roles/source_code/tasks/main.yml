@@ -3,6 +3,20 @@
   with_items:
     - s3cmd
     - git
+    - libfreetype6-dev
+    - pkg-config
+    - libpng12-dev
+    - libtiff5-dev
+    - libjpeg8-dev
+    - zlib1g-dev
+    - libfreetype6-dev
+    - liblcms2-dev
+    - libwebp-dev
+    - libharfbuzz-dev
+    - libfribidi-dev
+    - tcl8.6-dev
+    - tk8.6-dev
+    - python-tk
 
 - name: Fetch alpenglow repository
   git:
@@ -26,9 +40,9 @@
 
 - name: Copy aws credentials
   copy:
-    dest: "/home/ubuntu/.s3cfg"
-    owner: ubuntu
-    group: ubuntu
+    dest: "/home/{{ansible_user}}/.s3cfg"
+    owner: "{{ansible_user}}"
+    group: "{{ansible_user}}"
     mode: 0600
     content: |
       [default]

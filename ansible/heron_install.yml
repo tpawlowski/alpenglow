@@ -9,20 +9,20 @@
     changed_when: output.stdout != ""
   roles:
     - {role: 'common', tags: 'common'}
-    - { role: 'heron', tags: 'heron' }
+    - {role: 'heron', tags: 'heron'}
 
 - name: Setup master
   hosts: masters
   sudo: yes
   roles:
     - { role: 'zookeeper', tags: 'zookeeper' }
+    - { role: 'source_code', tags: 'source_code' }
     - { role: 'heron_multinode', tags: 'heron_multinode' }
 #    - { role: 'hdfs_start', tags: 'hdfs_start' }
 #    - { role: 'mesos_install', tags: 'mesos_install'}
 #    - { role: 'mesos_start_master', tags: 'mesos_start_master'}
 #    - { role: 'aurora_scheduler', tags: 'aurora_scheduler'}
 #    - { role: 'aurora_client', tags: 'aurora_client'}
-#    - { role: 'source_code', tags: 'source_code' }
 
 #- name: Setup workers
 #  hosts: slaves
